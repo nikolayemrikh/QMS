@@ -14,6 +14,7 @@ let priority = main.getArrivalPriority();
 // let reqProcessingTime = [0.5, 0.5, 0.5, 0.8, 1.0];
 // let priority = [1, 4, 2, 1, 2];
 
+let sumProcessingTimeNeeded = reqProcessingTime.reduce((cur, prev) => cur + prev);
 
 function lol() {
   while (indicators.priorQueue.length || indicators.nextPopTime !== false) {
@@ -27,19 +28,19 @@ function lol() {
       let freeAttendantIndex = getFreeAttendantIndex(indicators.attendants);
       if (freeAttendantIndex !== false) {
         indicators.attendants[freeAttendantIndex] = true;
-        let popTime = indicators.currentTime + reqProcessingTime.shift();
+        let procTime = reqProcessingTime.shift();
         indicators.requirementsInProcessing.push({
           attendantIndex: freeAttendantIndex,
           // popTime: indicators.nextPopTime
-          popTime: popTime
+          popTime: indicators.currentTime + procTime
         });
-        attendantsBusyTime[freeAttendantIndex] += popTime;
+        attendantsBusyTime[freeAttendantIndex] += procTime;
       } else { // Если устройства заняты
         let req = {
           priority: nextPriority,
           processingTime: reqProcessingTime.shift()
         };
-        if (indicators.priorQueue.length < 2) {
+        if (indicators.priorQueue.length < main.I) {
           // Вставляем в очередь на место, идущее за последним таким же приоритетом либо выше
           const indexToInsert = findIndexToInsert(indicators.priorQueue, nextPriority);
           indicators.priorQueue.splice(indexToInsert, 0, req);
@@ -69,13 +70,13 @@ function lol() {
       let attIndexToFree = indicators.requirementsInProcessing[indexToPop].attendantIndex;
       // Если в очереди есть требование - засунем его в освободившееся устройство
       if (indicators.priorQueue.length) {
-        let popTime = indicators.priorQueue.pop().processingTime + indicators.currentTime;
+        let procTime = indicators.priorQueue.pop().processingTime;
         let req = {
           attendantIndex: attIndexToFree,
-          popTime: popTime
+          popTime: indicators.currentTime + procTime
         };
         indicators.requirementsInProcessing.splice(indexToPop, 1, req);
-        attendantsBusyTime[attIndexToFree] += popTime;
+        attendantsBusyTime[attIndexToFree] += procTime;
       } else {
         indicators.attendants[attIndexToFree] = null;
         indicators.requirementsInProcessing.splice(indexToPop, 1);
@@ -136,7 +137,15 @@ let otkaz = 0;
 let processedRequiremnts = [];
 let ppp=[];
 lol()
-console.log(ppp.filter(el => Math.max(...ppp)).length)
+
+// Время работы каждого устройства
+console.log(attendantsBusyTime);
+// Время работы всех устройств
+console.log(attendantsBusyTime.reduce((c, p) => c + p));
+// Время, которое должно было быть затрачено на обработку, если бы не было отказов
+console.log(sumProcessingTimeNeeded);
+
+
 console.log(reqArrivalTime.length, reqProcessingTime.length, priority.length, otkaz);
 
 class SMO extends Component {
