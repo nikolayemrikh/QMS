@@ -18,6 +18,7 @@ let sumProcessingTimeNeeded = reqProcessingTime.reduce((cur, prev) => cur + prev
 
 function lol() {
   while (indicators.priorQueue.length || indicators.nextPopTime !== false) {
+    indicators.prevTime = indicators.currentTime;
   // for (let i = 0; i < 10; ++i) {
     // Время прибытия ближе, чем время выхода
     if (indicators.nextPopTime === null || indicators.nextArrivalTime < indicators.nextPopTime) {
@@ -83,7 +84,10 @@ function lol() {
       }
       indicators.nextPopTime = getNextPopTime(indicators.requirementsInProcessing, reqProcessingTime);
     }
+    indicators.delay += indicators.prevQueueLength * (indicators.currentTime - indicators.prevTime);
+    indicators.prevQueueLength = indicators.priorQueue.length;
     // console.log(indicators, indicators.attendants, otkaz)
+    console.log(indicators.delay)
   }
 }
 
@@ -124,10 +128,12 @@ const findIndexToInsert = (queue, priority) => {
 
 const attendantsBusyTime = new Array(main.S).fill(0);
 const indicators = {
+  prevTime: null,
   currentTime: 0,
   nextArrivalTime: reqArrivalTime.shift(),
   nextPopTime: null,
   priorQueue: [],
+  prevQueueLength: 0,
   attendants: new Array(main.S).fill(null),
   requirementsInProcessing: [],
   delay: 0,
