@@ -10,13 +10,17 @@ let reqArrivalTime = main.getReqArrivalTime();
 let reqProcessingTime = main.getReqProcessingTime();
 let priority = main.getArrivalPriority();
 
+let RAT = Array.from(reqArrivalTime);
+let RPT = Array.from(reqProcessingTime);
+let PR = Array.from(priority);
+
 // let reqArrivalTime = [0.1, 0.2, 0.15, 0.1, 0.2];
 // let reqProcessingTime = [0.5, 0.5, 0.5, 0.8, 1.0];
 // let priority = [1, 4, 2, 1, 2];
 
 let sumProcessingTimeNeeded = reqProcessingTime.reduce((cur, prev) => cur + prev);
 
-function lol() {
+function lol(indicators) {
   while (indicators.priorQueue.length || indicators.nextPopTime !== false) {
     indicators.prevTime = indicators.currentTime;
   // for (let i = 0; i < 10; ++i) {
@@ -33,13 +37,17 @@ function lol() {
         indicators.requirementsInProcessing.push({
           attendantIndex: freeAttendantIndex,
           // popTime: indicators.nextPopTime
-          popTime: indicators.currentTime + procTime
+          popTime: indicators.currentTime + procTime,
+          pushedToProcessingTime: indicators.currentTime
         });
-        attendantsBusyTime[freeAttendantIndex] += procTime;
+        indicators.attendantsBusyTime[freeAttendantIndex].push(procTime);
+        // Раз сразу пошло в обработку - значит время ожидания 0
+        indicators.waitingTimes.push(0);
       } else { // Если устройства заняты
         let req = {
           priority: nextPriority,
-          processingTime: reqProcessingTime.shift()
+          processingTime: reqProcessingTime.shift(),
+          pushedInQueueTime: indicators.currentTime
         };
         if (indicators.priorQueue.length < main.I) {
           // Вставляем в очередь на место, идущее за последним таким же приоритетом либо выше
@@ -50,7 +58,7 @@ function lol() {
           // Нужен ли отказ?
           if (isRefuseNeeded(indicators.priorQueue, nextPriority)) {
             // Отказ нужен
-            otkaz++
+            indicators.rufuseCounter++
           } else {
             // Отказ не нужен для следующего приоритета - значит удаляем первый приоритет из очереди, ибо он меньше того, который пришел
             indicators.priorQueue.shift();
@@ -59,7 +67,6 @@ function lol() {
             indicators.priorQueue.splice(indexToInsert, 0, req);
           }
         }
-        ppp.push(indicators.priorQueue.length)
       }
       indicators.nextPopTime = getNextPopTime(indicators.requirementsInProcessing, reqProcessingTime);
       indicators.nextArrivalTime = indicators.currentTime + reqArrivalTime.shift();
@@ -71,13 +78,21 @@ function lol() {
       let attIndexToFree = indicators.requirementsInProcessing[indexToPop].attendantIndex;
       // Если в очереди есть требование - засунем его в освободившееся устройство
       if (indicators.priorQueue.length) {
-        let procTime = indicators.priorQueue.pop().processingTime;
+        let reqPopped = indicators.priorQueue.pop();
+        let waitingTime = indicators.currentTime - reqPopped.pushedInQueueTime;
+        indicators.waitingTimes.push(waitingTime);
         let req = {
           attendantIndex: attIndexToFree,
-          popTime: indicators.currentTime + procTime
+          popTime: indicators.currentTime + reqPopped.processingTime,
+          pushedToProcessingTime: indicators.currentTime
         };
-        indicators.requirementsInProcessing.splice(indexToPop, 1, req);
-        attendantsBusyTime[attIndexToFree] += procTime;
+        // Обработанное требование
+        let processedReq = indicators.requirementsInProcessing.splice(indexToPop, 1, req)[0];
+        // Время, за котоорое это требование обработалось
+        let processingTime = indicators.currentTime - processedReq.pushedToProcessingTime;
+        indicators.processingTimes.push(processingTime);
+        indicators.attendantsBusyTime[attIndexToFree].push(reqPopped.processingTime);
+
       } else {
         indicators.attendants[attIndexToFree] = null;
         indicators.requirementsInProcessing.splice(indexToPop, 1);
@@ -86,9 +101,11 @@ function lol() {
     }
     indicators.delay += indicators.prevQueueLength * (indicators.currentTime - indicators.prevTime);
     indicators.prevQueueLength = indicators.priorQueue.length;
-    // console.log(indicators, indicators.attendants, otkaz)
-    console.log(indicators.delay)
+    // console.log(indicators, indicators.attendants)
+    indicators.avgInQueue.push(indicators.priorQueue.length)
+    indicators.avgInSystem.push(indicators.priorQueue.length + indicators.requirementsInProcessing.length)
   }
+  return indicators;
 }
 
 
@@ -126,8 +143,12 @@ const findIndexToInsert = (queue, priority) => {
   return l;
 };
 
-const attendantsBusyTime = new Array(main.S).fill(0);
-const indicators = {
+let abt = [];
+for (let i = 0; i < main.S; ++i) {
+  abt.push([]);
+}
+
+let indicators = {
   prevTime: null,
   currentTime: 0,
   nextArrivalTime: reqArrivalTime.shift(),
@@ -137,22 +158,83 @@ const indicators = {
   attendants: new Array(main.S).fill(null),
   requirementsInProcessing: [],
   delay: 0,
-  serviceTime: 0
+  serviceTime: 0,
+  attendantsBusyTime: abt,
+  rufuseCounter: 0,
+  waitingTimes: [],
+  processingTimes: [],
+  avgInQueue: [],
+  avgInSystem: []
 };
-let otkaz = 0;
-let processedRequiremnts = [];
-let ppp=[];
-lol()
+indicators = lol(indicators);
+// // Время работы каждого устройства
+// console.log(`Время работы каждого устройства: ${indicators.attendantsBusyTime}`);
+// // Время работы всех устройств
+// console.log(`Время работы всех устройств: ${indicators.attendantsBusyTime.reduce((c, p) => c + p)}`);
+// // Время, которое должно было быть затрачено на обработку, если бы не было отказов
+// console.log(`Время, которое должно было быть затрачено на обработку, если бы не было отказов: ${sumProcessingTimeNeeded}`);
+// // Время задержки
+// console.log(`Время задержки требований в очередях: ${indicators.delay}`);
+//
+// console.log(reqArrivalTime.length, reqProcessingTime.length, priority.length, indicators.rufuseCounter);
 
-// Время работы каждого устройства
-console.log(attendantsBusyTime);
-// Время работы всех устройств
-console.log(attendantsBusyTime.reduce((c, p) => c + p));
-// Время, которое должно было быть затрачено на обработку, если бы не было отказов
-console.log(sumProcessingTimeNeeded);
+const getP = (attendantsBusyTime, modelingTime) => {
+  let U = 0;
+  for (let i = 0, l = attendantsBusyTime.length; i < l; ++i) {
+    U += attendantsBusyTime[i].reduce((a,b) => a+b) / modelingTime;
+  }
+  return U / attendantsBusyTime.length;
+};
 
+const getMeanTime = (someTimes) => {
+  let l = someTimes.length;
+  let s = 0;
+  for (let i = 0; i < l; ++i) {
+    s += someTimes[i];
+  }
+  return s / l;
+};
 
-console.log(reqArrivalTime.length, reqProcessingTime.length, priority.length, otkaz);
+const getTq = (waitingTimes) => {
+  return getMeanTime(waitingTimes);
+};
+
+const getTs = (processingTimes) => {
+  return getMeanTime(processingTimes);
+};
+
+const getNq = (avgInQueue, modelingTime) => {
+  return avgInQueue.reduce((a,b) => a+b) / modelingTime;
+};
+
+const getNs = (avgInSystem, modelingTime) => {
+  return avgInSystem.reduce((a,b) => a+b) / modelingTime;
+};
+
+const getCa = (cuccessReqLength, modelingTime) => {
+  return cuccessReqLength / modelingTime;
+};
+
+const getCr = (cuccessReqLength, n) => {
+  return cuccessReqLength / n;
+};
+
+function getResults(indicators) {
+  console.log(`Время работы каждого устройства: ${indicators.attendantsBusyTime.map(el => el.reduce((a,b) => a+b))}`);
+
+  let p = getP(indicators.attendantsBusyTime, indicators.currentTime);
+  console.log(`Коэффициент использования системы: ${p}`);
+  let Tq = getTq(indicators.waitingTimes);
+  console.log(`Среднее время ожидания заявки в очереди: ${Tq}`);
+  let Ts = getTs(indicators.processingTimes);
+  console.log(`Среднее время пребывания заявки в системе: ${Ts}`);
+  console.log(`Общее время моделирования: ${indicators.currentTime}`);
+  console.log(`Среднее по времени число требований в очереди: ${getNq(indicators.avgInQueue, indicators.currentTime)}`);
+  console.log(`Среднее по времени число требований в системе: ${getNq(indicators.avgInSystem, indicators.currentTime)}`);
+  console.log(`Абсолютная пропускная способность системы: ${getCr(main.N - indicators.rufuseCounter, main.N)}`);
+}
+
+getResults(indicators);
 
 class SMO extends Component {
   render() {
