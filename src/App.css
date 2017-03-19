@@ -1,0 +1,55 @@
+.container {
+    display: flex;
+    flex-direction: row;
+    text-align: center;
+    padding: 20px;
+    justify-content: space-around;
+    font-family: -apple-system, system-ui, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;
+    font-weight: 300;
+    font-size: 1rem;
+}
+
+.content-container {
+    margin-right: 30px;
+    margin-bottom: 30px;
+}
+
+.plot-name {
+    margin: 0;
+}
+
+.container h2 {
+    font-weight: 300;
+}
+
+.bar rect {
+    fill: steelblue;
+}
+
+.bar text {
+    fill: #fff;
+    font: 10px sans-serif;
+}
+
+.axis text {
+    fill: #666;
+    font-size: 16px;
+}
+
+.line {
+    fill: none;
+    stroke: orangered;
+    stroke-width: 2px;
+}
+
+.main-select {
+    /*margin: 50vh;*/
+    font-size: 30px;
+}
+
+select {
+    width: 300px;
+    height: 40px;
+    margin-left: 10px;
+    font-size: 30px;
+}
