@@ -2,7 +2,6 @@ import React, {Component} from 'react';
 import { ComposedChart, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Line } from 'recharts';
 
 export function transformData(x, y) {
-    console.log(x.length, y.length)
   if (x.length != y.length) {
     console.error("Data for transformation have different sizes");
   }

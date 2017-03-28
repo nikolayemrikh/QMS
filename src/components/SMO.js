@@ -145,11 +145,12 @@ const findIndexToInsert = (queue, priority) => {
 
 function getInitIndicators(RAT, state) {
   let abt = [];
-  console.log(state.S)
+  let att = [];
   for (let i = 0; i < state.S; ++i) {
     abt.push([]);
+    att.push(null);
   }
-  console.log(state.S, new Array(state.S).fill(null))
+
   let indicators = {
     prevTime: null,
     currentTime: 0,
@@ -157,7 +158,7 @@ function getInitIndicators(RAT, state) {
     nextPopTime: null,
     priorQueue: [],
     prevQueueLength: 0,
-    attendants: new Array(state.S).fill(null),
+    attendants: att,
     requirementsInProcessing: [],
     delay: 0,
     serviceTime: 0,
@@ -171,7 +172,6 @@ function getInitIndicators(RAT, state) {
     avgInSystem: [],
     systemUsageTime: []
   };
-  console.log(indicators)
   return indicators;
 }
 // // Время работы каждого устройства
@@ -257,7 +257,7 @@ function getResult(indicators, state) {
   res.push(getCa(state.N - indicators.rufuseCounter, indicators.currentTime));
   res.push(getCr(state.N - indicators.rufuseCounter, state.N));
   res.push(indicators.currentTime);
-  console.log(indicators)
+  // console.log(indicators)
   lastResult = res;
   lastInd = JSON.parse(JSON.stringify(indicators));
   return res;
@@ -323,7 +323,6 @@ function computeProperties(inlres) {
     return utils.getMu(arr);
   });
   let D = inlres.map((arr, i) => {
-    console.log(mean[i], arr)
     return utils.getD(arr, mean[i])
   });
   let E = mean.map(el => el * 0.05);
@@ -372,7 +371,6 @@ class ParamsTable extends Component {
     this.state.D = D;
     this.state.E = E;
     this.state.n = n;
-    console.log(this.state.mean, this.state.D)
   }
   render() {
     let _self = this;
@@ -473,7 +471,6 @@ class SMO extends Component {
     // console.log(this.state.resultsInline)
     this.setState({systemPropsSubmitted: true});
     this.setRandomSeeds();
-    console.log(lastInd.systemUsageTime.length)
   }
   render() {
     return (
