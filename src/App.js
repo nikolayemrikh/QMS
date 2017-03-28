@@ -35,6 +35,7 @@ class App extends Component {
     );
   }
 }
+      {/*<Analysis/>*/}
       {/*<div className="main-select">|*/}
         {/*<label> Выберите что будем делать*/}
           {/*<select defaultValue="SMO">*/}

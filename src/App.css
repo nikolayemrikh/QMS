@@ -12,6 +12,11 @@
 .content-container {
     margin-right: 30px;
     margin-bottom: 30px;
+    font-size: 1.5rem;
+}
+
+.req-container {
+    font-size: 1.5rem;
 }
 
 .plot-name {
@@ -52,4 +57,24 @@ select {
     height: 40px;
     margin-left: 10px;
     font-size: 30px;
+}
+
+.indicators-table {
+    border-collapse: collapse;
+    border: 2px solid black;
+    font-size: 20px;
+}
+
+.indicators-table td, .indicators-table th {
+    padding: 5px;
+    padding-right: 30px;
+    border: 1px solid lightgray;
+}
+
+th {
+    /* стили для ячеек-заголовков */
+}
+
+td {
+    min-width: 100px;
 }

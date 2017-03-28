@@ -61,7 +61,9 @@ let priorityNextPrev = utils.getNextFromPrevData(priority, evalPriorityD);
 
 let priorityCorr = utils.getCorrData(20, priority, evalPriorityM, evalPriorityD);
 
-let histData = utils.getGiscreteHist(priority, main.discreteN, {fn: utils.expPDF, args: {mean: main.discreteM}});
+let histData = utils.getDistHist(priority, main.Pi);
+// let histData = utils.getGiscreteHist(priority, main.discreteN, {fn: utils.expPDF, args: {mean: main.discreteM}});
+
 
 const SimpleScatterChart = React.createClass({
   render () {

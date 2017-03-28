@@ -38,7 +38,7 @@ export const getD = (randomVariable, Mu) => {
   for (let x of randomVariable) {
     sum += Math.pow(x - Mu, 2);
   }
-  return sum / (n - 1);
+  return sum !== 0 ? sum / (n - 1) : 0;
 };
 
 export const getCovar = (randomVariable, Mu) => {
@@ -284,13 +284,36 @@ export const getGiscreteHist = (randomVariable, discreteN, {fn, args}) => {
       x: i
     })
   }
+  console.log(arr)
+  for (let i = 0; i < randomVariable.length; ++i) {
+    let curr = randomVariable[i];
+    arr[curr - 1].quantity++;
+    console.log(i)
+  }
+  arr = arr.map((el, i) => {
+    el.l = el.quantity / randomVariable.length;
+    el.y = fn(el.x, args);
+    return el;
+  });
+  return arr;
+};
+
+export const getDistHist = (randomVariable, Pi) => {
+  let discreteN = Pi.length;
+  let arr = [];
+  for (let i = 1; i <= discreteN; ++i) {
+    arr.push({
+      quantity: 0,
+      x: i
+    })
+  }
   for (let i = 0; i < randomVariable.length; ++i) {
     let curr = randomVariable[i];
     arr[curr - 1].quantity++;
   }
   arr = arr.map((el, i) => {
     el.l = el.quantity / randomVariable.length;
-    el.y = fn(el.x, args);
+    el.y = Pi[i]
     return el;
   });
   return arr;

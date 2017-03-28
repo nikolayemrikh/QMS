@@ -1,10 +1,10 @@
 /* eslint-disable */
-const m = Math.pow(2, 31) - 1;
+export const m = Math.pow(2, 31) - 1;
 const a = 48271;
 
 // Линейный конгруэнтный генератор
-export function* linMultGen() {
-  let val = 1;
+export function* linMultGen(initVal) {
+  let val = initVal ? initVal : 1;
   while (true) {
     val = (a * val) % m;
     yield val;
@@ -14,9 +14,15 @@ export function* linMultGen() {
 const lmg = linMultGen();
 
 // Генератор равномерно распределенной СВ
-export function* uniDistrib() {
+export function* uniDistrib(seed) {
+  let localLMG;
+  if (seed) {
+    localLMG= linMultGen(seed);
+  } else {
+    localLMG = lmg;
+  }
   while (true) {
-    const val = lmg.next().value;
+    const val = localLMG.next().value;
     yield val / m;
   }
 }
@@ -24,19 +30,31 @@ export function* uniDistrib() {
 const ud = uniDistrib();
 
 // Генератор экспоненциального распределения
-export function* expDistrib({Mu}) {
+export function* expDistrib({Mu}, seed) {
+  let localUD;
+  if (seed) {
+    localUD = uniDistrib(seed);
+  } else {
+    localUD = ud;
+  }
   while (true) {
-    const val = ud.next().value;
+    const val = localUD.next().value;
     yield -Mu * Math.log(val);
   }
 }
 
 // Генератор распределения Эрланга
-export function* erlangDistrib({Mu, k}) {
+export function* erlangDistrib({Mu, k}, seed) {
+  let localUD;
+  if (seed) {
+    localUD = uniDistrib(seed);
+  } else {
+    localUD = ud;
+  }
   while (true) {
     let pr = 1;
     for (let i = 0; i < k; ++i) {
-      pr *= ud.next().value;
+      pr *= localUD.next().value;
     }
     // Mu = k / L
     // L = k / Mu
@@ -47,15 +65,15 @@ export function* erlangDistrib({Mu, k}) {
 }
 
 // Генератор для генераторов
-export function* genericGenerator(gen, n, args) {
-  const genInstance = gen(args);
+export function* genericGenerator(gen, n, seed, args) {
+  const genInstance = gen(args, seed);
   for (let i = 0; i < n; ++i)
     yield genInstance.next().value;
 }
 
 
 // Генератор нормально распределенной СВ методом Бокса-Мюллера
-export function* normDistrib({Mu, D}) {
+export function* normDistrib({Mu, D}, seed) {
   Mu = Mu ? Mu : 0;
   D = D ? D : 1;
   while (true) {
@@ -65,7 +83,7 @@ export function* normDistrib({Mu, D}) {
   }
 }
 
-export function* logNormDistrib({Mu, D}) {
+export function* logNormDistrib({Mu, D}, seed) {
   let logMu = Math.log(Math.pow(Mu, 2) / Math.sqrt(Math.pow(Mu, 2) + D));
   let logD = Math.log(1 + D / Math.pow(Mu, 2));
   const nd = normDistrib({Mu: logMu, D: logD});
@@ -105,5 +123,28 @@ export function* discreteDistrib(gen, n, discreteN, args) {
     //     break;
     //   }
     // }
+  }
+}
+
+export function* disDist(gen, n, seed, Pi, args) {
+  const UD = gen(seed);
+  const discreteN = Pi.length;
+  let udist = [];
+  for (let i = 0; i < n; ++i)
+    udist.push(UD.next().value);
+  const max = Math.max(...udist);
+  const min = Math.min(...udist);
+  let Yi = [0];
+  for (let i = 0; i < discreteN; ++i) {
+    Yi.push(Yi[i] + Pi[i]);
+  }
+  for (let i = 0; i <= n; ++i) {
+    for (let j = 0; j < discreteN; ++j) {
+      let curr = udist[i];
+      if (curr > Yi[j] && curr <= Yi[j + 1]) {
+        yield j + 1;
+        break;
+      }
+    }
   }
 }
