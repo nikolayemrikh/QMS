@@ -575,7 +575,7 @@ class SMO extends Component {
     // Массив средних значений начальных прогонов
     let resultSeeds = [];
     console.log(resultState.n)
-    while (k < Math.pow(2, initialValsMinus.length) - 1) {
+    while (k < Math.pow(2, initialValsMinus.length)) {
       let resultMeans = [];
       // Выберем текущие уровни для данной строки факторного плана
       let currentLevels = baseN[k];
@@ -681,7 +681,7 @@ class SMO extends Component {
             <ParamsTable data={this.state.results}/>
           </div>
         </div>
-          {/*<If test={this.state.plots}>*/}
+          <If test={this.state.plots}>
           <div className="req-container">
             <div className="content-container">
               <LinePlot
@@ -726,7 +726,7 @@ class SMO extends Component {
               <p>Рисунок - Среднее число требований в системе</p>
             </div>
           </div>
-        {/*</If>*/}
+        </If>
         <div className="req-container">
           <div className="content-container">
             <h3>Параметры системы</h3>
