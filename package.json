@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "d3": "^4.7.1",
+    "js-combinatorics": "^0.5.2",
     "react": "15.4.2",
     "react-d3-wrap": "^2.1.2",
     "react-dom": "15.4.2",
