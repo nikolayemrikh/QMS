@@ -3,8 +3,14 @@ export const m = Math.pow(2, 31) - 1;
 const a = 48271;
 
 // Линейный конгруэнтный генератор
-export function* linMultGen(initVal) {
+export function* linMultGen(initVal, M, A) {
   let val = initVal ? initVal : 1;
+  if (!M) {
+    M = m;
+  }
+  if (!A) {
+    A = a;
+  }
   while (true) {
     val = (a * val) % m;
     yield val;

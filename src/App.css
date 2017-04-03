@@ -1,4 +1,4 @@
-.container {
+.container-fluid {
     display: flex;
     flex-direction: row;
     text-align: center;
@@ -6,17 +6,15 @@
     justify-content: space-around;
     font-family: -apple-system, system-ui, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;
     font-weight: 300;
-    font-size: 1rem;
 }
 
-.content-container {
-    margin-right: 30px;
+.analysis .row {
     margin-bottom: 30px;
-    font-size: 1.5rem;
 }
 
-.req-container {
-    font-size: 1.5rem;
+.analysis .row p {
+    width: 100%;
+    text-align: center;
 }
 
 .plot-name {
@@ -77,4 +75,8 @@ th {
 
 td {
     min-width: 100px;
+}
+
+.form-group {
+    margin: 0 10px;
 }

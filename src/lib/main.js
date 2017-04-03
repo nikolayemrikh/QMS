@@ -56,3 +56,13 @@ export const getArrivalPriority = (seed, props) => {
   // console.log(arrivalPriority)
   return arrivalPriority;
 };
+
+const m1 = Math.pow(2, 32);
+const a1 = 1664525;
+const m2 = Math.pow(2, 31);
+const a2 = 22695477;
+const m3 = Math.pow(2, 24);
+const a3 = 1140671485;
+export const arrivalSeedLMG = generators.linMultGen(664676345, m1, a1);
+export const processingSeedLMG = generators.linMultGen(5, m2, a2);
+export const prioritySeedLMG = generators.linMultGen(12385764, m3, a3);

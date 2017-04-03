@@ -9,6 +9,12 @@ import * as main from '../lib/main';
 import LinePlot from '../components/LinePlot'
 var Combinatorics = require('js-combinatorics');
 
+import { Container, Row, Col, FormGroup, Form, Label, Input, Option, Table, Button } from 'reactstrap';
+Container.propTypes = {
+  fluid:  React.PropTypes.bool
+  // applies .container-fluid class
+};
+
 // let RAT = Array.from(reqArrivalTime);
 // let RPT = Array.from(reqProcessingTime);
 // let PR = Array.from(priority);
@@ -99,7 +105,7 @@ function lol(indicators, reqArrivalTime, reqProcessingTime, priority, state) {
     }
     indicators.lengthInQueue.push(indicators.priorQueue.length)
     indicators.lengthInSystem.push(indicators.priorQueue.length + indicators.requirementsInProcessing.length)
-    if (!state.factorPlan) {
+    if (!state.factorPlanBool) {
       indicators.delay += indicators.prevQueueLength * (indicators.currentTime - indicators.prevTime);
       indicators.prevQueueLength = indicators.priorQueue.length;
       // console.log(indicators, indicators.attendants)
@@ -236,7 +242,9 @@ const getCr = (successReqLength, n) => {
 let lastResult = {};
 let lastInd = {};
 let lastState = {};
-let factorPlan = [];
+let factorPlanResults = [];
+let factorPlanResultsTable = [];
+let factorsLength;
 function getResult(indicators, state) {
   // console.log(`Время работы каждого устройства: ${indicators.attendantsBusyTime.map(el => el.reduce((a,b) => a+b))}`);
   //
@@ -281,17 +289,18 @@ const getN = (vals) => {
 
 };
 
-class Table extends Component {
+class MainTable extends Component {
   constructor(props) {
     super(props);
 
   }
   componentWillReceiveProps(props) {
+    if (!props.data.length) return;
   }
   render() {
     let _self = this;
     return (
-      <table className="indicators-table">
+      <Table>
         <thead>
           <tr>
             <th>#</th>
@@ -317,7 +326,7 @@ class Table extends Component {
             );
           })}
         </tbody>
-      </table>
+      </Table>
     );
   }
 }
@@ -343,12 +352,157 @@ class FactorPlan extends Component {
 
   }
   componentWillReceiveProps(props) {
-    console.log(props.data)
+    if (!props.data.length) return;
+    // let inlres = [];
+    // for (let i = 0, l = props.data.length; i < l; ++i) {
+    //   let colVals = [];
+    //   let row = props.data[i];
+    //   for (let j = 0, n = row.length; j < n; ++j) {
+    //     let elem = row[j];
+    //     // this.state.mean[j] += elem;
+    //     colVals.push(elem);
+    //   }
+    //   inlres.push(colVals);
+    // }
+    // console.log(inlres)
   }
   render() {
     let _self = this;
     return (
-      <table className="indicators-table">
+      <Table>
+        <thead>
+        <tr>
+          <th>#</th>
+          <th>p</th>
+          <th>Tq</th>
+          <th>Ts</th>
+          <th>Nq</th>
+          <th>Ns</th>
+          <th>Ca</th>
+          <th>Cr</th>
+          <th>factor Ma</th>
+          <th>factor Ms</th>
+          <th>factor S</th>
+          <th>factor I</th>
+        </tr>
+        </thead>
+        <tbody>
+        {this.props.data.map(function(row, i) {
+          return (
+            <tr key={i}>
+              <td>{i + 1}</td>
+              {row.map(function(col, j) {
+                if (typeof col === 'number') {
+                  return <td key={j}>{col.toFixed(2)}</td>;
+                }
+                else if (typeof col === 'boolean') {
+                  return <td key={j}>{col === true ? '+' : '-'}</td>;
+                }
+                return <td key={j}>{col}</td>;
+              })}
+            </tr>
+          );
+        })}
+        </tbody>
+      </Table>
+    );
+  }
+}
+
+class Effects extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      mains: [],
+      variants: []
+    }
+  }
+  componentWillReceiveProps(props) {
+    if (!props.data.length) return;
+    let resps = props.data[0];
+    let factors = props.data[1];
+    console.log(resps)
+    // Перевернем строки в столбцы
+    let inlresps = resps[0].map(function(col, i) {
+      return resps.map(function(row) {
+        return row[i]
+      })
+    });
+    let inlfactors = factors[0].map(function(col, i) {
+      return factors.map(function(row) {
+        return row[i]
+      })
+    });
+    let lenAr = []
+    for (let i = 0; i < inlfactors.length; ++i)
+      lenAr[i] = i;
+
+    let cmb;
+    cmb = Combinatorics.power(lenAr);
+    let variants = cmb.map();
+    variants = variants.filter(el => {
+      if (el.length) return el;
+    });
+    variants.sort(function (a, b) {
+      return a.length - b.length;
+    });
+    console.log(variants)
+    this.setState({variants: variants})
+
+    console.log(inlresps, inlfactors)
+    // Посчитаем главные эффекты
+    let mains = [];
+    // Для каждого столбца средних значений из таблицы где P, Tq, Ts ... (для каждого отклика)
+    for (let i = 0; i < inlresps.length; ++i) {
+      // Средние значения в столбце (массив из значений в столбце с каждой строки)
+      let colMeans = inlresps[i];
+      // Для каждой комбинации 1 2 3 1,3 1,2 3,2 1,2,3 1,2,4 ...
+      let es = [];
+      for (let v = 0; v < variants.length; ++v) {
+        // Комбинация vart - массив из номеров столбцов факторов
+        let vart = variants[v];
+        // for (let j = 0; j < inlfactors.length; ++j) {
+        // let factorCol = inlfactors[j];
+        let sum = 0;
+        // Для каждого среднего значения в столбце отклика
+        for (let k = 0; k < colMeans.length; ++k) {
+          let factorVal;
+          // Для каждого фактора из списка факторов в комбинации на этой строке
+          let P = true;
+          for (let j = 0; j < vart.length; ++j) {
+            let factorColNum = vart[j];
+            let factorCol = inlfactors[factorColNum];
+            factorVal = factorCol[k];
+            P = P && factorVal;
+          }
+          let colMean = colMeans[k];
+          // Если фактор +
+          if (factorVal === true) {
+            sum += colMean;
+          } else {
+            sum -= colMean;
+          }
+        }
+        console.log(sum)
+        sum = sum / Math.pow(2, inlfactors.length - 1);
+        es.push(sum);
+      }
+      mains.push(es);
+    }
+    console.log(mains)
+    mains = mains[0].map(function(col, i) {
+      return mains.map(function(row) {
+        return row[i]
+      })
+    });
+    this.setState({mains: mains})
+
+
+  }
+  render() {
+    let _self = this;
+    return (
+      <Table>
         <thead>
         <tr>
           <th>#</th>
@@ -362,18 +516,18 @@ class FactorPlan extends Component {
         </tr>
         </thead>
         <tbody>
-        {this.props.data.map(function(row, i) {
+        {this.state.mains.map(function(row, i) {
           return (
             <tr key={i}>
-              <td>{i + 1}</td>
+              <td>{'e' + _self.state.variants[i].map(el => el + 1).join(' ')}</td>
               {row.map(function(col, j) {
-                return <td key={j}>{col.toFixed(2)}</td>;
+                return <td key={j}>{col}</td>;
               })}
             </tr>
           );
         })}
         </tbody>
-      </table>
+      </Table>
     );
   }
 }
@@ -391,6 +545,7 @@ class ParamsTable extends Component {
     }
   }
   componentWillReceiveProps(props) {
+    if (!props.data.length) return;
     var self = this;
     this.state.mean = this.state.mean.map(el => 0);
     let inlres = [[], [], [], [], [], [], [], []];
@@ -402,6 +557,7 @@ class ParamsTable extends Component {
         inlres[j].push(elem);
       }
     }
+    console.log(inlres)
     this.state.inlres.splice();
     this.setState({inlres: inlres});
     // this.state.mean = this.state.inlres.map(arr => {
@@ -425,7 +581,7 @@ class ParamsTable extends Component {
   render() {
     let _self = this;
     return (
-      <table className="indicators-table">
+      <Table>
         <tbody>
           <tr>
             <td>mean<sup>^</sup></td>
@@ -452,7 +608,7 @@ class ParamsTable extends Component {
             })}
           </tr>
         </tbody>
-      </table>
+      </Table>
     );
   }
 }
@@ -467,10 +623,7 @@ const getTimes = (init = 0, arr, n) => {
   return mas;
 };
 
-var baseN = Combinatorics.baseN(["+", "-"], 3);
-console.log(baseN.toArray())
-
-var If = React.createClass({
+let If = React.createClass({
   render: function() {
     if (this.props.test) {
       return this.props.children;
@@ -480,6 +633,8 @@ var If = React.createClass({
     }
   }
 });
+
+let factorPlanResultConst = [[0.6635170374430872,12.761742140184312,25.71805927824817,0.10629316644791406,0.2756269392428614,0.054065700126100714,1],[0.5975830165435736,8.915610559267062,25.59520700348915,0.06714787367949768,0.21220481036638933,0.04869316437962122,1],[0.7949340951961197,25.427960212831596,29.91765376105333,0.17985587290132626,0.36618914818805465,0.053978353211682595,1],[0.7161979290995797,18.83273628602925,30.272377990985227,0.11773791932375785,0.2762294018004728,0.04863193693670296,1],[0.44312177259804436,1.9345590375977404,26.076597765353885,0.021935075018781836,0.21274314734265418,0.054160679058720504,1],[0.39889427449534015,1.3827072849885027,26.403257425916863,0.013846408948376748,0.17542034998682948,0.04875496108583366,1],[0.5308885064964556,3.8983548781904465,30.702879391920856,0.03806762194811272,0.25176540879319953,0.05407332663084182,1],[0.47840916810121187,2.9731521383668853,31.042859781539228,0.02538732731909594,0.20602230308087852,0.04872807546851431,1],[0.6635170374430872,12.761742140184312,25.71805927824817,0.10629316644791406,0.2756269392428614,0.054065700126100714,1],[0.5975830165435736,8.915610559267062,25.59520700348915,0.06714787367949768,0.21220481036638933,0.04869316437962122,1],[0.7949340951961197,25.427960212831596,29.91765376105333,0.17985587290132626,0.36618914818805465,0.053978353211682595,1],[0.7161979290995797,18.83273628602925,30.272377990985227,0.11773791932375785,0.2762294018004728,0.04863193693670296,1],[0.44312177259804436,1.9345590375977404,26.076597765353885,0.021935075018781836,0.21274314734265418,0.054160679058720504,1],[0.39889427449534015,1.3827072849885027,26.403257425916863,0.013846408948376748,0.17542034998682948,0.04875496108583366,1],[0.5308885064964556,3.8983548781904465,30.702879391920856,0.03806762194811272,0.25176540879319953,0.05407332663084182,1],[0.47840916810121187,2.9731521383668853,31.042859781539228,0.02538732731909594,0.20602230308087852,0.04872807546851431,1]];
 
 class SMO extends Component {
   constructor(props) {
@@ -508,19 +663,27 @@ class SMO extends Component {
       resultsInline: [[], [], [], [], [], [], [], []],
       factorResults: [],
       // plots: false,
-      factorPlan: []
+      factorPlan: [],
+      factorPlanBool: false,
+      effectsRawData: [],
+      baseN: []
     };
 
     this.handleChange = this.handleChange.bind(this);
     this.submitSystemProps = this.submitSystemProps.bind(this);
     this.submitGenProps = this.submitGenProps.bind(this);
     this.factorPlanHandle = this.factorPlanHandle.bind(this);
+    this.calculateEffects = this.calculateEffects.bind(this);
   }
   setRandomSeeds() {
+    let arrivalSeed = main.arrivalSeedLMG.next().value;
+    let processingSeed = main.processingSeedLMG.next().value;
+    let prioritySeed = main.prioritySeedLMG.next().value;
     // Зададим рандомно начальные значения
-    this.setState({arrivalSeed: Math.random() * generators.m});
-    this.setState({processingSeed: Math.random() * generators.m});
-    this.setState({prioritySeed: Math.random() * generators.m});
+    this.setState({arrivalSeed: arrivalSeed});
+    this.setState({processingSeed: processingSeed});
+    this.setState({prioritySeed: prioritySeed});
+    return [arrivalSeed, processingSeed, prioritySeed];
   }
   handleChange(event) {
     this.setState({[event.target.name]: event.target.value});
@@ -528,6 +691,10 @@ class SMO extends Component {
   submitSystemProps(e) {
     e.preventDefault();
     // this.setState({systemPropsSubmitted: true});
+  }
+  calculateEffects(e) {
+    e.preventDefault();
+    this.setState({effectsRawData: [factorPlanResults, this.state.baseN]});
   }
   submitGenProps(e) {
     e.preventDefault();
@@ -552,22 +719,14 @@ class SMO extends Component {
   factorPlanHandle(e) {
     e.preventDefault();
     let initialValsPlus = [this.state.Maplus, this.state.Msplus, this.state.Splus, this.state.Iplus];
-    // initialValsPlus = initialValsPlus.map(el => {
-    //   return {
-    //     number: el,
-    //     sign: '+'
-    //   }
-    // });
     let initialValsMinus = [this.state.Maminus, this.state.Msminus, this.state.Sminus, this.state.Iminus];
-    // initialValsMinus = initialValsMinus.map(el => {
-    //   return {
-    //     number: el,
-    //     sign: '-'
-    //   }
-    // });
+    factorsLength = initialValsMinus.length;
+
+
     let baseN = Combinatorics.baseN([true, false], initialValsPlus.length); // Сгенерируем варианты (2^4)
     baseN = baseN.toArray();
 
+    this.setState({baseN: baseN})
     // k - строка факторного плана
     let k = 0;
     // Значения Mu, D, E и n после начальных прогонов
@@ -575,16 +734,24 @@ class SMO extends Component {
     // Массив средних значений начальных прогонов
     let resultSeeds = [];
     console.log(resultState.n)
-    while (k < Math.pow(2, initialValsMinus.length)) {
+    while (k < Math.pow(2, initialValsPlus.length)) {
+    // while (k < 5) {
       let resultMeans = [];
+      let resultTable = [];
       // Выберем текущие уровни для данной строки факторного плана
       let currentLevels = baseN[k];
       console.log(currentLevels)
+      // Не для каждой строке же нужно генерить сиды, а для каждого прогона
+      // let seeds = this.setRandomSeeds();
+      // resultMeans.push(seeds);
       // Для каждого параметра системы из таблицы кроме полного времени работы системы
       for (let i = 0, l = resultState.mean.length - 1; i < l; ++i) {
         // количество прогонов, нужное для этого параметра
         let n = resultState.n[i];
-        // console.log(resultState.n[i], i)
+        if (n === 0) {
+          resultMeans.push(resultState.mean[i]);
+          break;
+        }
         // Номер прогона
         let j = 0;
         let vals = [];
@@ -614,167 +781,165 @@ class SMO extends Component {
       }
       // Запушим все строки плана в массив
       k++;
-      // factorPlan.push(resultMeans);
-      // let factorPlan = this.state.factorPlan.slice();
-      factorPlan.push(resultMeans);
-      console.log(factorPlan)
-      this.setState({factorPlan: factorPlan});
+      factorPlanResults.push(resultMeans);
+      resultTable.push(...resultMeans);
+      resultTable.push(...currentLevels);
+      factorPlanResultsTable.push(resultTable);
+      console.log(factorPlanResults)
+      this.setState({factorPlan: factorPlanResultsTable});
     }
-    console.log(factorPlan)
+    console.log(factorPlanResultsTable)
   }
   render() {
     return (
-      <div className="container">
-        <div>
-        <div className="req-container">
-          <div className="content-container">
-            <h3>Параметры системы</h3>
-            <form onSubmit={this.submitSystemProps}>
-              <label>
-                Количество требований:
-                <input type="text" name="N" value={this.state.N} onChange={this.handleChange} />
-              </label>
-              <label>
-                Количество обслуживающих устройств:
-                <input type="text" name="S" value={this.state.S} onChange={this.handleChange} />
-              </label>
-              <label>
-                Ёмкость накопителя:
-                <input type="text" name="I" value={this.state.I} onChange={this.handleChange} />
-              </label>
-              <label>
-                Среднее время поступления требований:
-                <input type="text" name="Ma" value={this.state.Ma} onChange={this.handleChange} />
-              </label>
-              <label>
-                Среднее время обработки требований:
-                <input type="text" name="Ms" value={this.state.Ms} onChange={this.handleChange} />
-              </label>
-              <input type="submit" value="Submit" />
-            </form>
-          </div>
-        </div>
-        <div className="req-container">
-          <div className="content-container">
-            <h3>Начальные значения генераторов</h3>
-            <form onSubmit={this.submitGenProps}>
-              <label>
-                Поступление требований:
-                <input type="text" name="arrivalSeed" value={this.state.arrivalSeed} onChange={this.handleChange} />
-              </label>
-              <label>
-                Обработка требований:
-                <input type="text" name="processingSeed" value={this.state.processingSeed} onChange={this.handleChange} />
-              </label>
-              <label>
-                Приоритет:
-                <input type="text" name="prioritySeed" value={this.state.prioritySeed} onChange={this.handleChange} />
-              </label>
-              <input type="submit" value="Submit" />
-            </form>
-          </div>
-        </div>
-        <div className="req-container">
-          <div className="content-container">
+      <Container fluid={true}>
+        <Col>
+        <Row>
+          <Col>
+          <h3>Параметры системы</h3>
+          <Form onSubmit={this.submitSystemProps}>
+            <FormGroup>
+              <Label for="mainN">Количество требований:</Label>
+              <Input id="mainN" type="text" name="N" value={this.state.N} onChange={this.handleChange} />
+            </FormGroup>
+            <FormGroup>
+              <Label for="mainS">Количество обслуживающих устройств:</Label>
+              <Input type="text" name="S" value={this.state.S} onChange={this.handleChange} />
+            </FormGroup>
+            <FormGroup>
+              <Label for="mainI">Ёмкость накопителя:</Label>
+              <Input type="text" name="I" value={this.state.I} onChange={this.handleChange} />
+            </FormGroup>
+            <FormGroup>
+              <Label for="mainMa">Среднее время поступления требований:</Label>
+              <Input type="text" name="Ma" value={this.state.Ma} onChange={this.handleChange} />
+            </FormGroup>
+            <FormGroup>
+              <Label for="mainMs">Среднее время обработки требований:</Label>
+              <Input type="text" name="Ms" value={this.state.Ms} onChange={this.handleChange} />
+            </FormGroup>
+            {/*<Input type="submit" value="Submit" />*/}
+          </Form>
+          </Col>
+          <Col>
+          <h3>Начальные значения генераторов</h3>
+          <Form onSubmit={this.submitGenProps}>
+            <FormGroup>
+              <Label for="arrivalSeed">Поступление требований:</Label>
+              <Input id="arrivalSeed" type="text" name="arrivalSeed" value={this.state.arrivalSeed} onChange={this.handleChange} />
+            </FormGroup>
+            <FormGroup>
+              <Label for="processingSeed">Обработка требований:</Label>
+              <Input id="processingSeed" type="text" name="processingSeed" value={this.state.processingSeed} onChange={this.handleChange} />
+            </FormGroup>
+            <FormGroup>
+              <Label for="prioritySeed">Приоритет:</Label>
+              <Input id="prioritySeed" type="text" name="prioritySeed" value={this.state.prioritySeed} onChange={this.handleChange} />
+            </FormGroup>
+            <Input type="submit" value="Submit" />
+          </Form>
+          </Col>
+        </Row>
+        <Row>
+          <Col>
             <h3>Предварительные прогоны</h3>
-            <Table data={this.state.results}/>
+            <MainTable data={this.state.results}/>
             <ParamsTable data={this.state.results}/>
-          </div>
-        </div>
-          <If test={this.state.plots}>
-          <div className="req-container">
-            <div className="content-container">
+          </Col>
+        </Row>
+          {/*<If test={this.state.plots}>*/}
+          <Row>
+            <Col>
               <LinePlot
                 x={this.state.systemPropsSubmitted ? getTimes(0, this.state.results[this.state.results.length - 1], lastInd.waitingTimes.length) : [1]}
-                y={this.state.systemPropsSubmitted ? lastInd.waitingTimes : [1]} width={2500} height={800}
+                y={this.state.systemPropsSubmitted ? lastInd.waitingTimes : [1]} width={1000} height={600}
               />
               <p>Рисунок - Время ожидания требований в очереди</p>
-            </div>
-            <div className="content-container">
+            </Col>
+          </Row>
+          <Row>
+            <Col>
               <LinePlot
                 x={this.state.systemPropsSubmitted ? getTimes(0, this.state.results[this.state.results.length - 1], lastInd.systemUsageTime.length) : [1]}
-                y={this.state.systemPropsSubmitted ? lastInd.systemUsageTime : [1]} width={2500} height={800}
+                y={this.state.systemPropsSubmitted ? lastInd.systemUsageTime : [1]} width={1000} height={600}
               />
               <p>Рисунок - Коэффициент использования системы</p>
-            </div>
-            <div className="content-container">
+            </Col>
+          </Row>
+          <Row>
+            <Col>
               <LinePlot
                 x={this.state.systemPropsSubmitted ? getTimes(0, this.state.results[this.state.results.length - 1], lastInd.lengthInQueue.length) : [1]}
-                y={this.state.systemPropsSubmitted ? lastInd.lengthInQueue : [1]} width={2500} height={800}
+                y={this.state.systemPropsSubmitted ? lastInd.lengthInQueue : [1]} width={1000} height={600}
               />
               <p>Рисунок - Число требований в очереди</p>
-            </div>
-            <div className="content-container">
+            </Col>
+          </Row>
+          <Row>
+            <Col>
               <LinePlot
                 x={this.state.systemPropsSubmitted ? getTimes(0, this.state.results[this.state.results.length - 1], lastInd.avgInSystem.length) : [1]}
-                y={this.state.systemPropsSubmitted ? lastInd.lengthInSystem : [1]} width={2500} height={800}
+                y={this.state.systemPropsSubmitted ? lastInd.lengthInSystem : [1]} width={1000} height={600}
               />
               <p>Рисунок - Число требований в системе</p>
-            </div>
-            <div className="content-container">
+            </Col>
+          </Row>
+          <Row>
+            <Col>
               <LinePlot
                 x={this.state.systemPropsSubmitted ? getTimes(0, this.state.results[this.state.results.length - 1], lastInd.avgInQueue.length) : [1]}
-                y={this.state.systemPropsSubmitted ? lastInd.avgInQueue : [1]} width={2500} height={800}
+                y={this.state.systemPropsSubmitted ? lastInd.avgInQueue : [1]} width={1000} height={600}
               />
               <p>Рисунок - Среднее число требований в очереди</p>
-            </div>
-            <div className="content-container">
+            </Col>
+          </Row>
+          <Row>
+            <Col>
               <LinePlot
                 x={this.state.systemPropsSubmitted ? getTimes(0, this.state.results[this.state.results.length - 1], lastInd.avgInSystem.length) : [1]}
-                y={this.state.systemPropsSubmitted ? lastInd.avgInSystem : [1]} width={2500} height={800}
+                y={this.state.systemPropsSubmitted ? lastInd.avgInSystem : [1]} width={1000} height={600}
               />
               <p>Рисунок - Среднее число требований в системе</p>
-            </div>
-          </div>
-        </If>
-        <div className="req-container">
-          <div className="content-container">
+            </Col>
+          </Row>
+        {/*</If>*/}
+        <Row>
+          <Col>
             <h3>Параметры системы</h3>
-            <form onSubmit={this.factorPlanHandle}>
-              <label>
-                Количество обслуживающих устройств +:
-                <input type="text" name="Splus" value={this.state.Splus} onChange={this.handleChange} />
-              </label>
-              <label>
-                Ёмкость накопителя +:
-                <input type="text" name="Iplus" value={this.state.Iplus} onChange={this.handleChange} />
-              </label>
-              <label>
-                Среднее время поступления требований +:
-                <input type="text" name="Maplus" value={this.state.Maplus} onChange={this.handleChange} />
-              </label>
-              <label>
-                Среднее время обработки требований +:
-                <input type="text" name="Msplus" value={this.state.Msplus} onChange={this.handleChange} />
-              </label>
-              <br/>
-              <br/>
-              <br/>
-              <label>
-                Количество обслуживающих устройств -:
-                <input type="text" name="Sminus" value={this.state.Sminus} onChange={this.handleChange} />
-              </label>
-              <label>
-                Ёмкость накопителя -:
-                <input type="text" name="Iminus" value={this.state.Iminus} onChange={this.handleChange} />
-              </label>
-              <label>
-                Среднее время поступления требований -:
-                <input type="text" name="Maminus" value={this.state.Maminus} onChange={this.handleChange} />
-              </label>
-              <label>
-                Среднее время обработки требований -:
-                <input type="text" name="Msminus" value={this.state.Msminus} onChange={this.handleChange} />
-              </label>
-              <input type="submit" value="Submit" />
-            </form>
-          </div>
-        </div>
-        <div className="req-container">
+            <Form onSubmit={this.factorPlanHandle} inline>
+              <Row>
+                <Label for="Splus">Количество обслуживающих устройств +:</Label>
+                <Input type="text" name="Splus" id="Splus" value={this.state.Splus} onChange={this.handleChange} />
+                <Label for="Iplus">Ёмкость накопителя +:</Label>
+                <Input type="text" name="Iplus" id="Iplus" value={this.state.Iplus} onChange={this.handleChange} />
+                <Label for="Maplus">Среднее время поступления требований +:</Label>
+                <Input type="text" name="Maplus" id="Maplus" value={this.state.Maplus} onChange={this.handleChange} />
+                <Label for="Msplus">Среднее время обработки требований +:</Label>
+                <Input type="text" name="Msplus" id="Msplus" value={this.state.Msplus} onChange={this.handleChange} />
+              </Row>
+              <Row>
+                <Label for="Sminus">Количество обслуживающих устройств -:</Label>
+                <Input type="text" name="Sminus" id="Sminus" value={this.state.Sminus} onChange={this.handleChange} />
+                <Label for="Iminus">Ёмкость накопителя -:</Label>
+                <Input type="text" name="Iminus" id="Iminus" value={this.state.Iminus} onChange={this.handleChange} />
+                <Label for="Maminus">Среднее время поступления требований -:</Label>
+                <Input type="text" name="Maminus" id="Maminus" value={this.state.Maminus} onChange={this.handleChange} />
+                <Label for="Msminus">Среднее время обработки требований -:</Label>
+                <Input type="text" name="Msminus" id="Msminus" value={this.state.Msminus} onChange={this.handleChange} />
+              </Row>
+              <Input type="submit" value="Submit" />
+            </Form>
+          </Col>
+        </Row>
+        <Row>
           <FactorPlan data={this.state.factorPlan}/>
-        </div>
-      </div>
-    </div>
+        </Row>
+        <Row>
+          <Button onClick={this.calculateEffects}>Рассчитать эффекты</Button>
+          <Effects data={this.state.effectsRawData}/>
+        </Row>
+      </Col>
+    </Container>
     )
   }
 }

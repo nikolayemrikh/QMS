@@ -1,5 +1,10 @@
 import React, { Component } from 'react';
 import { ScatterChart, ComposedChart, Bar, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { Container, Row, Col } from 'reactstrap';
+Container.propTypes = {
+  fluid:  React.PropTypes.bool
+  // applies .container-fluid class
+};
 
 import * as main from '../lib/main';
 
@@ -68,7 +73,7 @@ let histData = utils.getDistHist(priority, main.Pi);
 const SimpleScatterChart = React.createClass({
   render () {
     return (
-      <ScatterChart width={600} height={600}>
+      <ScatterChart width={400} height={400}>
         <XAxis dataKey={'x'} name='stature' unit='sec'/>
         <YAxis dataKey={'y'} name='weight' unit='sec'/>
         <ZAxis dataKey={'z'} range={this.props.range ? [this.props.range, this.props.range] : [4, 4]} />
@@ -83,7 +88,7 @@ const SimpleScatterChart = React.createClass({
 const LineBarAreaComposedChart = React.createClass({
   render () {
     return (
-      <ComposedChart width={600} height={600} data={this.props.data}>
+      <ComposedChart width={400} height={400} data={this.props.data}>
         <XAxis dataKey={'x'} name='stature' unit='sec'/>
         <YAxis dataKey={'y'} name='weight' unit='sec'/>
         <ZAxis dataKey={'z'} range={this.props.range ? [this.props.range, this.props.range] : [4, 4]} />
@@ -100,90 +105,92 @@ const LineBarAreaComposedChart = React.createClass({
 class Analysis extends Component {
   render() {
     return (
-      <div className="container">
-        <div className="req-container">
-          <h2>Время поступления требований</h2>
-          <div className="content-container">
+      <Container fluid={true} className='analysis'>
+        <Row>
+        <Col xs="6" sm="4">
+          <h3>Время поступления требований</h3>
+          <Row>
             <p>Оценка мат. ожидания: {evalMa.toFixed(2)}</p>
             <p>Оценка дисперсии: {evalDa.toFixed(2)}</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <SimpleScatterChart data={arrivalNextPrev} />
             <p className="plot-name">Рисунок — Диаграмма разброса (X<sub>i</sub>, X<sub>i+1</sub>)</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <SimpleScatterChart data={arrivalCorr} range={15} />
             <p className="plot-name">Рисунок — График коэффициента корреляции (i, p(i))</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <p>Ma = {main.Ma} {arrivalConfInt[0] <= main.Ma && arrivalConfInt[1] >= main.Ma ? `Попадает` : `Не попадает`} в доверительный интервал</p>
             <p>{`${arrivalConfInt[0].toFixed(2)} <= Ma <= ${arrivalConfInt[1].toFixed(2)}`}</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <p>Проверка гипотезы доверительного интервала {arrivalSignificance < main.t ? 'принимается' : 'отвергается'}:</p>
             <p>|Z| = {arrivalSignificance.toFixed(2)} {arrivalSignificance.toFixed(2) < main.t ? '<' : '>='} t = {main.t}</p>
-          </div>
-          <div className="content-container">
-            <Histogram data={reqArrivalTime} width={600} height={600} options={ {color: '#413ea0', line: {fn: utils.expPDF, args: {mean: main.Ma}}} } />
+          </Row>
+          <Row>
+            <Histogram data={reqArrivalTime} width={400} height={400} options={ {color: '#413ea0', line: {fn: utils.expPDF, args: {mean: main.Ma}}} } />
             <p className="plot-name">Рисунок — Гистограммма и графико плотности вероятности</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <p>Провека гипотезы о законе распределения методом χ<sup>2</sup> {arrivalZ < main.quantille ? 'принимается' : 'отвергается'}:</p>
             <p>Z = {arrivalZ.toFixed(2)} {arrivalZ < main.quantille ? '<' : '>='} χ<sup>2</sup><sub>16, 0.95</sub> = {main.quantille}</p>
-          </div>
-        </div>
-        <div className="req-container">
-          <h2>Время обработки требований</h2>
-          <div className="content-container">
+          </Row>
+        </Col>
+        <Col xs="6" sm="4">
+          <h3>Время обработки требований</h3>
+          <Row>
             <p>Оценка мат. ожидания: {evalMs.toFixed(2)}</p>
             <p>Оценка дисперсии: {evalDs.toFixed(2)}</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <SimpleScatterChart data={processingNextPrev} />
             <p className="plot-name">Рисунок — Диаграмма разброса (X<sub>i</sub>, X<sub>i+1</sub>)</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <SimpleScatterChart data={processingCorr} range={15} />
             <p className="plot-name">Рисунок — График коэффициента корреляции (i, p(i))</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <p>Ms = {main.Ms} {processingConfInt[0] <= main.Ms && processingConfInt[1] >= main.Ms ? `Попадает` : `Не попадает`} в доверительный интервал</p>
             <p>{`${processingConfInt[0].toFixed(2)} <= Ms <= ${processingConfInt[1].toFixed(2)}`}</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <p>Гипотеза H0 {processingSignificance < main.t ? 'принимается' : 'отвергается'}:</p>
             <p>|Z| = {processingSignificance.toFixed(2)} {processingSignificance.toFixed(2) < main.t ? '<' : '>='} t = {main.t}</p>
-          </div>
-          <div className="content-container">
-            <Histogram data={reqProcessingTime} width={600} height={600} options={ {color: '#413ea0', line: {fn: utils.erlangPDF, args: {k: main.k, mean: main.Ms}}} } />
+          </Row>
+          <Row>
+            <Histogram data={reqProcessingTime} width={400} height={400} options={ {color: '#413ea0', line: {fn: utils.erlangPDF, args: {k: main.k, mean: main.Ms}}} } />
             <p className="plot-name">Рисунок — Гистограммма и графико плотности вероятности</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <p>Провека гипотезы о законе распределения методом χ<sup>2</sup> {processingZ < main.quantille ? 'принимается' : 'отвергается'}:</p>
             <p>Z = {processingZ.toFixed(2)} {processingZ < main.quantille ? '<' : '>='} χ<sup>2</sup><sub>16, 0.95</sub> = {main.quantille}</p>
-          </div>
-        </div>
-        <div className="priority-container">
-          <h2>Приоритет</h2>
-          <div className="content-container">
+          </Row>
+        </Col>
+        <Col xs="6" sm="4">
+          <h3>Приоритет</h3>
+          <Row>
             <p>Оценка мат. ожидания: {evalPriorityM.toFixed(2)}</p>
             <p>Оценка дисперсии: {evalPriorityD.toFixed(2)}</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <SimpleScatterChart data={priorityNextPrev} />
             <p className="plot-name">Рисунок — Диаграмма разброса (X<sub>i</sub>, X<sub>i+1</sub>)</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <SimpleScatterChart data={priorityCorr} range={15} />
             <p className="plot-name">Рисунок — График коэффициента корреляции (i, p(i))</p>
-          </div>
-          <div className="content-container">
+          </Row>
+          <Row>
             <LineBarAreaComposedChart data={histData} />
             <p className="plot-name">Рисунок — Гистограммма и графико плотности вероятности</p>
-            {/*<Histogram data={priority} width={600} height={600} options={ {k: 5, mode: 'stem', color: '#413ea0', line: {fn: utils.normPDF, args: {mean: main.discreteM, D: main.discreteD}}} } />*/}
-          </div>
-        </div>
-      </div>
+            {/*<Histogram data={priority} width={400} height={400} options={ {k: 5, mode: 'stem', color: '#413ea0', line: {fn: utils.normPDF, args: {mean: main.discreteM, D: main.discreteD}}} } />*/}
+          </Row>
+        </Col>
+        </Row>
+      </Container>
     );
   }
 }
