@@ -7,6 +7,7 @@ import * as utils from '../lib/utils';
 import d3Wrap from 'react-d3-wrap';
 import * as main from '../lib/main';
 import LinePlot from '../components/LinePlot'
+var mathjs = require('mathjs');
 var Combinatorics = require('js-combinatorics');
 
 import { Container, Row, Col, FormGroup, Form, Label, Input, Option, Table, Button } from 'reactstrap';
@@ -393,7 +394,7 @@ class FactorPlan extends Component {
               <td>{i + 1}</td>
               {row.map(function(col, j) {
                 if (typeof col === 'number') {
-                  return <td key={j}>{col.toFixed(2)}</td>;
+                  return <td key={j}>{col}</td>;
                 }
                 else if (typeof col === 'boolean') {
                   return <td key={j}>{col === true ? '+' : '-'}</td>;
@@ -421,7 +422,8 @@ class Effects extends Component {
     if (!props.data.length) return;
     let resps = props.data[0];
     let factors = props.data[1];
-    console.log(resps)
+    let initlialPlus = props.data[2];
+    let initlialMinus = props.data[3];
     // Перевернем строки в столбцы
     let inlresps = resps[0].map(function(col, i) {
       return resps.map(function(row) {
@@ -449,11 +451,12 @@ class Effects extends Component {
     console.log(variants)
     this.setState({variants: variants})
 
-    console.log(inlresps, inlfactors)
+    console.log(inlresps, factors)
     // Посчитаем главные эффекты
     let mains = [];
     // Для каждого столбца средних значений из таблицы где P, Tq, Ts ... (для каждого отклика)
     for (let i = 0; i < inlresps.length; ++i) {
+    // for (let i = 0; i < 1; ++i) {
       // Средние значения в столбце (массив из значений в столбце с каждой строки)
       let colMeans = inlresps[i];
       // Для каждой комбинации 1 2 3 1,3 1,2 3,2 1,2,3 1,2,4 ...
@@ -461,29 +464,25 @@ class Effects extends Component {
       for (let v = 0; v < variants.length; ++v) {
         // Комбинация vart - массив из номеров столбцов факторов
         let vart = variants[v];
-        // for (let j = 0; j < inlfactors.length; ++j) {
-        // let factorCol = inlfactors[j];
         let sum = 0;
         // Для каждого среднего значения в столбце отклика
         for (let k = 0; k < colMeans.length; ++k) {
-          let factorVal;
-          // Для каждого фактора из списка факторов в комбинации на этой строке
-          let P = true;
+          let factorBoolsRow = factors[k];
+          // Для каждого номера столбца фактора в комбинации на этой строке
+          let P = 1;
           for (let j = 0; j < vart.length; ++j) {
             let factorColNum = vart[j];
-            let factorCol = inlfactors[factorColNum];
-            factorVal = factorCol[k];
-            P = P && factorVal;
+            let factorBool = factorBoolsRow[factorColNum];
+            // let factorBool = factorCol[k];
+            if (factorBool === true) {
+              P *= initlialPlus[factorColNum];
+            } else {
+              P *= initlialMinus[factorColNum];
+            }
           }
           let colMean = colMeans[k];
-          // Если фактор +
-          if (factorVal === true) {
-            sum += colMean;
-          } else {
-            sum -= colMean;
-          }
+          sum += (colMean * P);
         }
-        console.log(sum)
         sum = sum / Math.pow(2, inlfactors.length - 1);
         es.push(sum);
       }
@@ -521,7 +520,242 @@ class Effects extends Component {
             <tr key={i}>
               <td>{'e' + _self.state.variants[i].map(el => el + 1).join(' ')}</td>
               {row.map(function(col, j) {
-                return <td key={j}>{col}</td>;
+                return <td key={j}>{col.toFixed(2)}</td>;
+              })}
+            </tr>
+          );
+        })}
+        </tbody>
+      </Table>
+    );
+  }
+}
+
+let regressResult = [];
+let regressVariants = [];
+class Regress extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      mains: [],
+      variants: []
+    }
+  }
+  componentWillReceiveProps(props) {
+    if (!props.data || !props.data.length) return;
+    this.setState({mains: []});
+    let resps = props.data[0];
+    let factors = props.data[1];
+    let initlialPlus = props.data[2];
+    let initlialMinus = props.data[3];
+    // Перевернем строки в столбцы
+    let inlresps = resps[0].map(function(col, i) {
+      return resps.map(function(row) {
+        return row[i]
+      })
+    });
+    let inlfactors = factors[0].map(function(col, i) {
+      return factors.map(function(row) {
+        return row[i]
+      })
+    });
+    let lenAr = []
+    for (let i = 0; i < inlfactors.length; ++i)
+      lenAr[i] = i;
+
+    let cmb;
+    cmb = Combinatorics.power(lenAr);
+    let variants = cmb.map();
+    variants.sort(function (a, b) {
+      return a.length - b.length;
+    });
+    this.setState({variants: variants})
+    regressVariants = variants;
+    variants = variants.filter(el => {
+      if (el.length) return el;
+    });
+
+    let result = [];
+    // Для каждого столбца в факторном плане
+    for (let i = 0, l = inlresps.length; i < l; ++i) {
+    // for (let i = 0, l = 1; i < l; ++i) {
+      let resultCol = [];
+      let yMatrix = [];
+      let columnVals = inlresps[i];
+      // Для каждой строки в этом столбце
+      for (let j = 0, n = columnVals.length; j < n; ++j) {
+        // Там где a0 берем 1
+        let resultRow = [1];
+        let factorPlusOrMinus = factors[j];
+            // console.log(factorPlusOrMinus)
+        // Для каждой комбинации 1 2 3 1,3 1,2 3,2 1,2,3 1,2,4 ...
+        for (let k = 0; k < variants.length; ++k) {
+          let variant = variants[k];
+          // Произведение пишем сюда
+          let P = 1;
+          for (let varPart of variant) {
+            let val;
+            if (factorPlusOrMinus[varPart] === true) {
+              val = initlialPlus[varPart];
+            } else {
+              val = initlialMinus[varPart];
+            }
+            P *= val;
+          }
+          resultRow.push(P);
+        }
+        resultCol.push(resultRow);
+        // Пушим значение отклика в матрицу
+        yMatrix.push([columnVals[j]]);
+      }
+      // let resultColInverted = resultCol[0].map(function(col, i) {
+      //   return resultCol.map(function(row) {
+      //     return row[i]
+      //   })
+      // });
+      let resultColInverted = mathjs.inv(resultCol);
+      let columntResult = mathjs.multiply(resultColInverted, yMatrix);
+      columntResult = columntResult.map(el => el[0]);
+      // console.log(columntResult);
+      result.push(columntResult);
+    }
+    regressResult = result;
+    // regressVariants = variants;
+    let resultInTable = result[0].map(function(col, i) {
+      return result.map(function(row) {
+        return row[i]
+      })
+    });
+    this.setState({mains: resultInTable});
+    // console.log(resultInTable)
+
+  }
+  render() {
+    let _self = this;
+    return (
+      <Table>
+        <thead>
+        <tr>
+          <th>#</th>
+          <th>p</th>
+          <th>Tq</th>
+          <th>Ts</th>
+          <th>Nq</th>
+          <th>Ns</th>
+          <th>Ca</th>
+          <th>Cr</th>
+        </tr>
+        </thead>
+        <tbody>
+        {this.state.mains.map(function(row, i) {
+          return (
+            <tr key={i}>
+              <td>{'a' + _self.state.variants[i].map(el => el + 1).join(' ')}</td>
+              {row.map(function(col, j) {
+                return <td key={j}>{col.toFixed(2)}</td>;
+              })}
+            </tr>
+          );
+        })}
+        </tbody>
+      </Table>
+    );
+  }
+}
+
+class CheckRegress extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      mains: [],
+      variants: []
+    }
+  }
+  componentWillReceiveProps(props) {
+    if (!props.data || !props.data.length) return;
+    this.setState({mains: []});
+    let regressResults = props.data[0];
+    let factors = props.data[1];
+    let initlialPlus = props.data[2];
+    let initlialMinus = props.data[3];
+    // Перевернем строки в столбцы
+    let inlRegressResults = regressResults[0].map(function(col, i) {
+      return regressResults.map(function(row) {
+        return row[i]
+      })
+    });
+    let inlfactors = factors[0].map(function(col, i) {
+      return factors.map(function(row) {
+        return row[i]
+      })
+    });
+
+    let variants = regressVariants;
+console.log(regressResults, variants)
+    let result = [];
+    // Для каждого столбца
+    for (let i = 0, l = regressResults.length; i < l; ++i) {
+      // for (let i = 0, l = 1; i < l; ++i) {
+      let resultCol = [];
+      let columnCoefs = regressResults[i];
+      // Для каждой строки в этом столбце
+      for (let j = 0, n = columnCoefs.length; j < n; ++j) {
+        let sum = 0;
+        let factorPlusOrMinus = factors[j];
+        // console.log(factorPlusOrMinus)
+        // Для каждой комбинации    пусто 1 2 3 1,3 1,2 3,2 1,2,3 1,2,4 ...
+        for (let k = 0; k < variants.length; ++k) {
+          let variant = variants[k];
+          // Произведение пишем сюда
+          let P = 1;
+          for (let varPart of variant) {
+            let val;
+            if (factorPlusOrMinus[varPart] === true) {
+              val = initlialPlus[varPart];
+            } else {
+              val = initlialMinus[varPart];
+            }
+            P *= val;
+          }
+          P *= columnCoefs[k];
+          sum += P;
+        }
+        resultCol.push(sum);
+      }
+      result.push(resultCol);
+    }
+
+    let resultInTable = result[0].map(function(col, i) {
+      return result.map(function(row) {
+        return row[i]
+      })
+    });
+    this.setState({mains: resultInTable});
+
+  }
+  render() {
+    let _self = this;
+    return (
+      <Table>
+        <thead>
+        <tr>
+          <th>#</th>
+          <th>p</th>
+          <th>Tq</th>
+          <th>Ts</th>
+          <th>Nq</th>
+          <th>Ns</th>
+          <th>Ca</th>
+          <th>Cr</th>
+        </tr>
+        </thead>
+        <tbody>
+        {this.state.mains.map(function(row, i) {
+          return (
+            <tr key={i}>
+              <td>{i + 1}</td>
+              {row.map(function(col, j) {
+                return <td key={j}>{col.toFixed(2)}</td>;
               })}
             </tr>
           );
@@ -636,6 +870,25 @@ let If = React.createClass({
 
 let factorPlanResultConst = [[0.6635170374430872,12.761742140184312,25.71805927824817,0.10629316644791406,0.2756269392428614,0.054065700126100714,1],[0.5975830165435736,8.915610559267062,25.59520700348915,0.06714787367949768,0.21220481036638933,0.04869316437962122,1],[0.7949340951961197,25.427960212831596,29.91765376105333,0.17985587290132626,0.36618914818805465,0.053978353211682595,1],[0.7161979290995797,18.83273628602925,30.272377990985227,0.11773791932375785,0.2762294018004728,0.04863193693670296,1],[0.44312177259804436,1.9345590375977404,26.076597765353885,0.021935075018781836,0.21274314734265418,0.054160679058720504,1],[0.39889427449534015,1.3827072849885027,26.403257425916863,0.013846408948376748,0.17542034998682948,0.04875496108583366,1],[0.5308885064964556,3.8983548781904465,30.702879391920856,0.03806762194811272,0.25176540879319953,0.05407332663084182,1],[0.47840916810121187,2.9731521383668853,31.042859781539228,0.02538732731909594,0.20602230308087852,0.04872807546851431,1],[0.6635170374430872,12.761742140184312,25.71805927824817,0.10629316644791406,0.2756269392428614,0.054065700126100714,1],[0.5975830165435736,8.915610559267062,25.59520700348915,0.06714787367949768,0.21220481036638933,0.04869316437962122,1],[0.7949340951961197,25.427960212831596,29.91765376105333,0.17985587290132626,0.36618914818805465,0.053978353211682595,1],[0.7161979290995797,18.83273628602925,30.272377990985227,0.11773791932375785,0.2762294018004728,0.04863193693670296,1],[0.44312177259804436,1.9345590375977404,26.076597765353885,0.021935075018781836,0.21274314734265418,0.054160679058720504,1],[0.39889427449534015,1.3827072849885027,26.403257425916863,0.013846408948376748,0.17542034998682948,0.04875496108583366,1],[0.5308885064964556,3.8983548781904465,30.702879391920856,0.03806762194811272,0.25176540879319953,0.05407332663084182,1],[0.47840916810121187,2.9731521383668853,31.042859781539228,0.02538732731909594,0.20602230308087852,0.04872807546851431,1]];
 
+function multiply(a, b) {
+  var aNumRows = a.length, aNumCols = a[0].length,
+    bNumRows = b.length, bNumCols = b[0].length,
+    m = new Array(aNumRows);  // initialize array of rows
+  for (var r = 0; r < aNumRows; ++r) {
+    m[r] = new Array(bNumCols); // initialize the current row
+    for (var c = 0; c < bNumCols; ++c) {
+      m[r][c] = 0;             // initialize the current cell
+      for (var i = 0; i < aNumCols; ++i) {
+        m[r][c] += a[r][i] * b[i][c];
+      }
+    }
+  }
+  return m;
+}
+
+
+
+
 class SMO extends Component {
   constructor(props) {
     super(props);
@@ -674,6 +927,8 @@ class SMO extends Component {
     this.submitGenProps = this.submitGenProps.bind(this);
     this.factorPlanHandle = this.factorPlanHandle.bind(this);
     this.calculateEffects = this.calculateEffects.bind(this);
+    this.calculateRegress = this.calculateRegress.bind(this);
+    this.checkRegress = this.checkRegress.bind(this);
   }
   setRandomSeeds() {
     let arrivalSeed = main.arrivalSeedLMG.next().value;
@@ -692,9 +947,31 @@ class SMO extends Component {
     e.preventDefault();
     // this.setState({systemPropsSubmitted: true});
   }
+  calculateRegress(e) {
+    e.preventDefault();
+    let initialValsPlus = [this.state.Maplus, this.state.Msplus, this.state.Splus, this.state.Iplus];
+    let initialValsMinus = [this.state.Maminus, this.state.Msminus, this.state.Sminus, this.state.Iminus];
+    // let baseN = Combinatorics.baseN([true, false], initialValsPlus.length); // Сгенерируем варианты (2^4)
+    // baseN = baseN.toArray();
+    // this.setState({regressData: [factorPlanResults, this.state.baseN, initialValsPlus, initialValsMinus]});
+    this.setState({regressData: [factorPlanResultConst, this.state.baseN, initialValsPlus, initialValsMinus]});
+  }
+  checkRegress(e) {
+    e.preventDefault();
+    let initialValsPlus = [this.state.Maplus, this.state.Msplus, this.state.Splus, this.state.Iplus];
+    let initialValsMinus = [this.state.Maminus, this.state.Msminus, this.state.Sminus, this.state.Iminus];
+    // let baseN = Combinatorics.baseN([true, false], initialValsPlus.length); // Сгенерируем варианты (2^4)
+    // baseN = baseN.toArray();
+    this.setState({checkRegressData: [regressResult, this.state.baseN, initialValsPlus, initialValsMinus]});
+  }
   calculateEffects(e) {
     e.preventDefault();
-    this.setState({effectsRawData: [factorPlanResults, this.state.baseN]});
+    let initialValsPlus = [this.state.Maplus, this.state.Msplus, this.state.Splus, this.state.Iplus];
+    let initialValsMinus = [this.state.Maminus, this.state.Msminus, this.state.Sminus, this.state.Iminus];
+    // let baseN = Combinatorics.baseN([true, false], initialValsPlus.length); // Сгенерируем варианты (2^4)
+    // baseN = baseN.toArray();
+    this.setState({effectsRawData: [factorPlanResults, this.state.baseN, initialValsPlus, initialValsMinus]});
+    // this.setState({effectsRawData: [factorPlanResultConst, this.state.baseN, initialValsPlus, initialValsMinus]});
   }
   submitGenProps(e) {
     e.preventDefault();
@@ -715,6 +992,11 @@ class SMO extends Component {
     // console.log(this.state.resultsInline)
     this.setState({systemPropsSubmitted: true});
     this.setRandomSeeds();
+    let baseN = Combinatorics.baseN([true, false], 4); // Сгенерируем варианты (2^4)
+    baseN = baseN.toArray();
+    this.setState({baseN: baseN})
+    console.log("TEST")
+
   }
   factorPlanHandle(e) {
     e.preventDefault();
@@ -723,10 +1005,10 @@ class SMO extends Component {
     factorsLength = initialValsMinus.length;
 
 
-    let baseN = Combinatorics.baseN([true, false], initialValsPlus.length); // Сгенерируем варианты (2^4)
+    /*let baseN = Combinatorics.baseN([true, false], initialValsPlus.length); // Сгенерируем варианты (2^4)
     baseN = baseN.toArray();
 
-    this.setState({baseN: baseN})
+    this.setState({baseN: baseN})*/
     // k - строка факторного плана
     let k = 0;
     // Значения Mu, D, E и n после начальных прогонов
@@ -739,7 +1021,7 @@ class SMO extends Component {
       let resultMeans = [];
       let resultTable = [];
       // Выберем текущие уровни для данной строки факторного плана
-      let currentLevels = baseN[k];
+      let currentLevels = this.state.baseN[k];
       console.log(currentLevels)
       // Не для каждой строке же нужно генерить сиды, а для каждого прогона
       // let seeds = this.setRandomSeeds();
@@ -937,6 +1219,11 @@ class SMO extends Component {
         <Row>
           <Button onClick={this.calculateEffects}>Рассчитать эффекты</Button>
           <Effects data={this.state.effectsRawData}/>
+          <Button onClick={this.calculateRegress}>Рассчитать регрессию</Button>
+          <Regress data={this.state.regressData}/>
+          <Button onClick={this.checkRegress}>Проверить коэффициенты регрессии</Button>
+          <p>Задайте приращения для начальных + и - значений выше</p>
+          <CheckRegress data={this.state.checkRegressData}/>
         </Row>
       </Col>
     </Container>
