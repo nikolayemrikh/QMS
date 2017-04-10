@@ -265,6 +265,8 @@ export const chiSquareTest = (randomVariable, args) => {
   for (let i = 0; i < k; ++i) {
     let val = getQuantityInInterval(randomVariable, [intervals[i], intervals[i + 1]]);
     fallingsIntoIntervals.push(val);
+
+    console.log([intervals[i].toFixed(2), intervals[i + 1].toFixed(2), val.toFixed(2), pn[i].toFixed(2), Math.pow(fallingsIntoIntervals[i] - n * pn[i], 2) / (n * pn[i]).toFixed(2)].join("\t") + "\t")
   }
 
   let Z = 0;

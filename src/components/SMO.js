@@ -538,7 +538,8 @@ class Regress extends Component {
     super(props);
     this.state = {
       mains: [],
-      variants: []
+      variants: [],
+      initlialPlus: null
     }
   }
   componentWillReceiveProps(props) {
@@ -548,6 +549,8 @@ class Regress extends Component {
     let factors = props.data[1];
     let initlialPlus = props.data[2];
     let initlialMinus = props.data[3];
+    if (initlialPlus === this.state.initlialPlus) return;
+    this.setState({initlialPlus: initlialPlus});
     // Перевернем строки в столбцы
     let inlresps = resps[0].map(function(col, i) {
       return resps.map(function(row) {
@@ -669,18 +672,18 @@ class CheckRegress extends Component {
     this.state = {
       mains: [],
       variants: [],
-      regressResults: null
+      initlialPlus: null
     }
   }
   componentWillReceiveProps(props) {
     if (!props.data || !props.data.length) return;
     this.setState({mains: []});
     let regressResults = props.data[0];
-    if (regressResults === this.state.regressResults) return;
-    this.setState({regressResults: regressResults});
     let factors = props.data[1];
     let initlialPlus = props.data[2];
     let initlialMinus = props.data[3];
+    if (initlialPlus === this.state.initlialPlus) return;
+    this.setState({initlialPlus: initlialPlus});
     // Перевернем строки в столбцы
     let inlRegressResults = regressResults[0].map(function(col, i) {
       return regressResults.map(function(row) {
@@ -692,7 +695,7 @@ class CheckRegress extends Component {
         return row[i]
       })
     });
-
+console.log(regressResults)
     let variants = regressVariants;
     let result = [];
     // Для каждого столбца
@@ -744,8 +747,8 @@ class CheckRegress extends Component {
     for (let i = 0, l = resultInTable.length; i < l; ++i) {
       let vals = resultInTable[i];
       let I = En * c1 * main.S + c2 * (vals[4] - vals[3]) + c3 * (main.S - vals[4] + vals[3]) +
-          c4 * T * (main.Ma - vals[5]) + c5 * T * vals[3];
-      console.log(I)
+          c4 * T * (Math.pow(main.Ma, -1) - vals[5]) + c5 * T * vals[3];
+      resultInTable[i].push(I);
     }
 
     this.setState({mains: resultInTable});
@@ -766,6 +769,7 @@ class CheckRegress extends Component {
           <th>Ns</th>
           <th>Ca</th>
           <th>Cr</th>
+          <th>Econ</th>
         </tr>
         </thead>
         <tbody>
@@ -887,8 +891,114 @@ let If = React.createClass({
   }
 });
 
-let factorPlanResultConst = [[0.6635170374430872,12.761742140184312,25.71805927824817,0.10629316644791406,0.2756269392428614,0.054065700126100714,1],[0.5975830165435736,8.915610559267062,25.59520700348915,0.06714787367949768,0.21220481036638933,0.04869316437962122,1],[0.7949340951961197,25.427960212831596,29.91765376105333,0.17985587290132626,0.36618914818805465,0.053978353211682595,1],[0.7161979290995797,18.83273628602925,30.272377990985227,0.11773791932375785,0.2762294018004728,0.04863193693670296,1],[0.44312177259804436,1.9345590375977404,26.076597765353885,0.021935075018781836,0.21274314734265418,0.054160679058720504,1],[0.39889427449534015,1.3827072849885027,26.403257425916863,0.013846408948376748,0.17542034998682948,0.04875496108583366,1],[0.5308885064964556,3.8983548781904465,30.702879391920856,0.03806762194811272,0.25176540879319953,0.05407332663084182,1],[0.47840916810121187,2.9731521383668853,31.042859781539228,0.02538732731909594,0.20602230308087852,0.04872807546851431,1],[0.6635170374430872,12.761742140184312,25.71805927824817,0.10629316644791406,0.2756269392428614,0.054065700126100714,1],[0.5975830165435736,8.915610559267062,25.59520700348915,0.06714787367949768,0.21220481036638933,0.04869316437962122,1],[0.7949340951961197,25.427960212831596,29.91765376105333,0.17985587290132626,0.36618914818805465,0.053978353211682595,1],[0.7161979290995797,18.83273628602925,30.272377990985227,0.11773791932375785,0.2762294018004728,0.04863193693670296,1],[0.44312177259804436,1.9345590375977404,26.076597765353885,0.021935075018781836,0.21274314734265418,0.054160679058720504,1],[0.39889427449534015,1.3827072849885027,26.403257425916863,0.013846408948376748,0.17542034998682948,0.04875496108583366,1],[0.5308885064964556,3.8983548781904465,30.702879391920856,0.03806762194811272,0.25176540879319953,0.05407332663084182,1],[0.47840916810121187,2.9731521383668853,31.042859781539228,0.02538732731909594,0.20602230308087852,0.04872807546851431,1]];
+//let factorPlanResultConst = [[0.6635170374430872,12.761742140184312,25.71805927824817,0.10629316644791406,0.2756269392428614,0.054065700126100714,1],[0.5975830165435736,8.915610559267062,25.59520700348915,0.06714787367949768,0.21220481036638933,0.04869316437962122,1],[0.7949340951961197,25.427960212831596,29.91765376105333,0.17985587290132626,0.36618914818805465,0.053978353211682595,1],[0.7161979290995797,18.83273628602925,30.272377990985227,0.11773791932375785,0.2762294018004728,0.04863193693670296,1],[0.44312177259804436,1.9345590375977404,26.076597765353885,0.021935075018781836,0.21274314734265418,0.054160679058720504,1],[0.39889427449534015,1.3827072849885027,26.403257425916863,0.013846408948376748,0.17542034998682948,0.04875496108583366,1],[0.5308885064964556,3.8983548781904465,30.702879391920856,0.03806762194811272,0.25176540879319953,0.05407332663084182,1],[0.47840916810121187,2.9731521383668853,31.042859781539228,0.02538732731909594,0.20602230308087852,0.04872807546851431,1],[0.6635170374430872,12.761742140184312,25.71805927824817,0.10629316644791406,0.2756269392428614,0.054065700126100714,1],[0.5975830165435736,8.915610559267062,25.59520700348915,0.06714787367949768,0.21220481036638933,0.04869316437962122,1],[0.7949340951961197,25.427960212831596,29.91765376105333,0.17985587290132626,0.36618914818805465,0.053978353211682595,1],[0.7161979290995797,18.83273628602925,30.272377990985227,0.11773791932375785,0.2762294018004728,0.04863193693670296,1],[0.44312177259804436,1.9345590375977404,26.076597765353885,0.021935075018781836,0.21274314734265418,0.054160679058720504,1],[0.39889427449534015,1.3827072849885027,26.403257425916863,0.013846408948376748,0.17542034998682948,0.04875496108583366,1],[0.5308885064964556,3.8983548781904465,30.702879391920856,0.03806762194811272,0.25176540879319953,0.05407332663084182,1],[0.47840916810121187,2.9731521383668853,31.042859781539228,0.02538732731909594,0.20602230308087852,0.04872807546851431,1]];
+let factorPlanResultConst = [[0.7605384855028976,20.49895249745666,28.669205544110888,0.1530097676940443,0.33787611447305194,0.054548936789320615,1],[0.684607072746961,14.051201275082727,28.786472267254105,0.09422832061328751,0.25121005120249024,0.049102824707288946,1],[0.8142403466526136,29.314603383556143,30.523314682260576,0.20734568315354612,0.39997440141449,0.05450727738000682,1],[0.7335292982913877,18.297466993156405,30.72651202369553,0.11672087052103387,0.279796180155175,0.04910427872151194,1],[0.5080228601434106,2.613017692471235,28.95567995942993,0.026562923908006818,0.23567762940601947,0.05465622203293587,1],[0.45737364126814645,1.8709899398225518,29.142862568956964,0.01707485250347052,0.19289170551471016,0.049207067733344434,1],[0.5441740205761055,3.6082676098682755,31.223040978601546,0.035408370465980714,0.25430641380968266,0.05464254701540238,1],[0.48994049359962405,2.478129539514914,30.579088527488825,0.021302195303795048,0.2050520785824889,0.04919675589791,1],[0.7605384855028976,20.49895249745666,28.669205544110888,0.1530097676940443,0.33787611447305194,0.054548936789320615,1],[0.684607072746961,14.051201275082727,28.786472267254105,0.09422832061328751,0.25121005120249024,0.049102824707288946,1],[0.8142403466526136,29.314603383556143,30.523314682260576,0.20734568315354612,0.39997440141449,0.05450727738000682,1],[0.7335292982913877,18.297466993156405,30.72651202369553,0.11672087052103387,0.279796180155175,0.04910427872151194,1],[0.5080228601434106,2.613017692471235,28.95567995942993,0.026562923908006818,0.23567762940601947,0.05465622203293587,1],[0.45737364126814645,1.8709899398225518,29.142862568956964,0.01707485250347052,0.19289170551471016,0.049207067733344434,1],[0.5441740205761055,3.6082676098682755,31.223040978601546,0.035408370465980714,0.25430641380968266,0.05464254701540238,1],[0.48994049359962405,2.478129539514914,30.579088527488825,0.021302195303795048,0.2050520785824889,0.04919675589791,1]];
 
+function optimal(regressResult, baseN, initialPlus, initialMinus) {
+  let allResults = [];
+  let optimals = [];
+  let variants = regressVariants;
+
+  let En = 0.15;
+  let c1 = 6000000;
+  let c2 = 10000;
+  let c3 = 10000;
+  let c4 = 0.05;
+  let c5 = 0.086;
+  let T = 25000000;
+
+  let d1min, d1max;
+  let d2min, d2max;
+  let d3min, d3max;
+  let d4min, d4max;
+
+  d1min = Math.min(parseInt(initialMinus[0]), parseInt(initialPlus[0]));
+  d1max = Math.max(parseInt(initialMinus[0]), parseInt(initialPlus[0]));
+  d2min = Math.min(parseInt(initialMinus[1]), parseInt(initialPlus[1]));
+  d2max = Math.max(parseInt(initialMinus[1]), parseInt(initialPlus[1]));
+  d3min = Math.min(parseInt(initialMinus[2]), parseInt(initialPlus[2]));
+  d3max = Math.max(parseInt(initialMinus[2]), parseInt(initialPlus[2]));
+  d4min = Math.min(parseInt(initialMinus[3]), parseInt(initialPlus[3]));
+  d4max = Math.max(parseInt(initialMinus[3]), parseInt(initialPlus[3]));
+
+
+  let optI = false;
+  let optRes = [0, 200000, 200000, 200000, 200000, 0, 0.5, 99999999999];
+
+  for (let d1i = d1min, d1delta = 0.1; d1i < d1max; d1i += d1delta) {
+    for (let d2i = d2min, d2delta = 0.1; d2i < d2max; d2i += d2delta) {
+      for (let d3i = d3min, d3delta = 0.1; d3i < d3max; d3i += d3delta) {
+        for (let d4i = d4min, d4delta = 0.1; d4i < d4max; d4i += d4delta) {
+          let initialPlusPart = [d1i + d1delta, d2i + d2delta, d3i + d3delta, d4i + d4delta];
+          let initialMinusPart = [d1i, d2i, d3i, d4i];
+          let result = [];
+          // Для каждого столбца
+          for (let i = 0, l = regressResult.length; i < l; ++i) {
+            // for (let i = 0, l = 1; i < l; ++i) {
+            let resultCol = [];
+            let columnCoefs = regressResult[i];
+            // Для каждой строки в этом столбце
+            for (let j = 0, n = columnCoefs.length; j < n; ++j) {
+              let sum = 0;
+              let factorPlusOrMinus = baseN[j];
+              // console.log(factorPlusOrMinus)
+              // Для каждой комбинации    пусто 1 2 3 1,3 1,2 3,2 1,2,3 1,2,4 ...
+              for (let k = 0; k < variants.length; ++k) {
+                let variant = variants[k];
+                // Произведение пишем сюда
+                let P = 1;
+                for (let varPart of variant) {
+                  let val;
+                  if (factorPlusOrMinus[varPart] === true) {
+                    val = initialPlusPart[varPart];
+                  } else {
+                    val = initialMinusPart[varPart];
+                  }
+                  P *= val;
+                }
+                P *= columnCoefs[k];
+                sum += P;
+              }
+              resultCol.push(sum);
+            }
+            result.push(resultCol);
+          }
+          let resultInTable = result[0].map(function(col, i) {
+            return result.map(function(row) {
+              return row[i]
+            })
+          });
+
+          // Для каждой строки с откликами посчитаем экон оценку
+          for (let i = 0, l = resultInTable.length; i < l; ++i) {
+            let vals = resultInTable[i];
+            let I = En * c1 * main.S + c2 * (vals[4] - vals[3]) + c3 * (main.S - vals[4] + vals[3]) +
+              c4 * T * (Math.pow(main.Ma, -1) - vals[5]) + c5 * T * vals[3];
+            resultInTable[i].push(I);
+            // if (optI === false || I < optI) {
+            //   optRes = resultInTable[i];
+            // }
+          }
+
+          // allResults.push(...resultInTable);
+          // Найдем самый оптимальный вариант в текущей выборке
+          let found = resultInTable.find(el => {
+            if (el[0] >= optRes[0] && el[0] <= 0.7 && // Коэфф использования больше 0.6 и <= 0.7
+              el[6] > 0.9 && el[6] <= 1 && // Пропускная способность больше 0.9 и не превышает 1
+              el[1] <= optRes[1] && el[1] > 0 && //среднее время ожидания заявки в очереди меньше, чем у оптимального предыдущего
+              el[7] <= optRes[7]) {
+                return el;
+              }
+          });
+          if (found) optRes = found;
+
+          // optimals.push(...resultInTable);
+        }
+      }
+    }
+  }
+  console.log(optRes)
+}
 
 class SMO extends Component {
   constructor(props) {
@@ -930,6 +1040,7 @@ class SMO extends Component {
     this.calculateEffects = this.calculateEffects.bind(this);
     this.calculateRegress = this.calculateRegress.bind(this);
     this.checkRegress = this.checkRegress.bind(this);
+    this.findOptimal = this.findOptimal.bind(this);
   }
   setRandomSeeds() {
     let arrivalSeed = main.arrivalSeedLMG.next().value;
@@ -948,14 +1059,20 @@ class SMO extends Component {
     e.preventDefault();
     // this.setState({systemPropsSubmitted: true});
   }
+  findOptimal(e) {
+    e.preventDefault();
+    let initialValsPlus = [this.state.Maplus, this.state.Msplus, this.state.Splus, this.state.Iplus];
+    let initialValsMinus = [this.state.Maminus, this.state.Msminus, this.state.Sminus, this.state.Iminus];
+    optimal(regressResult, this.state.baseN, initialValsPlus, initialValsMinus);
+  }
   calculateRegress(e) {
     e.preventDefault();
     let initialValsPlus = [this.state.Maplus, this.state.Msplus, this.state.Splus, this.state.Iplus];
     let initialValsMinus = [this.state.Maminus, this.state.Msminus, this.state.Sminus, this.state.Iminus];
     // let baseN = Combinatorics.baseN([true, false], initialValsPlus.length); // Сгенерируем варианты (2^4)
     // baseN = baseN.toArray();
-    this.setState({regressData: [factorPlanResults, this.state.baseN, initialValsPlus, initialValsMinus]});
-    // this.setState({regressData: [factorPlanResultConst, this.state.baseN, initialValsPlus, initialValsMinus]});
+    // this.setState({regressData: [factorPlanResults, this.state.baseN, initialValsPlus, initialValsMinus]});
+    this.setState({regressData: [factorPlanResultConst, this.state.baseN, initialValsPlus, initialValsMinus]});
   }
   checkRegress(e) {
     e.preventDefault();
@@ -1191,24 +1308,24 @@ class SMO extends Component {
             <h3>Параметры системы</h3>
             <Form onSubmit={this.factorPlanHandle} inline>
               <Row>
-                <Label for="Splus">Количество обслуживающих устройств +:</Label>
-                <Input type="text" name="Splus" id="Splus" value={this.state.Splus} onChange={this.handleChange} />
-                <Label for="Iplus">Ёмкость накопителя +:</Label>
-                <Input type="text" name="Iplus" id="Iplus" value={this.state.Iplus} onChange={this.handleChange} />
                 <Label for="Maplus">Среднее время поступления требований +:</Label>
                 <Input type="text" name="Maplus" id="Maplus" value={this.state.Maplus} onChange={this.handleChange} />
                 <Label for="Msplus">Среднее время обработки требований +:</Label>
                 <Input type="text" name="Msplus" id="Msplus" value={this.state.Msplus} onChange={this.handleChange} />
+                <Label for="Splus">Количество обслуживающих устройств +:</Label>
+                <Input type="text" name="Splus" id="Splus" value={this.state.Splus} onChange={this.handleChange} />
+                <Label for="Iplus">Ёмкость накопителя +:</Label>
+                <Input type="text" name="Iplus" id="Iplus" value={this.state.Iplus} onChange={this.handleChange} />
               </Row>
               <Row>
-                <Label for="Sminus">Количество обслуживающих устройств -:</Label>
-                <Input type="text" name="Sminus" id="Sminus" value={this.state.Sminus} onChange={this.handleChange} />
-                <Label for="Iminus">Ёмкость накопителя -:</Label>
-                <Input type="text" name="Iminus" id="Iminus" value={this.state.Iminus} onChange={this.handleChange} />
                 <Label for="Maminus">Среднее время поступления требований -:</Label>
                 <Input type="text" name="Maminus" id="Maminus" value={this.state.Maminus} onChange={this.handleChange} />
                 <Label for="Msminus">Среднее время обработки требований -:</Label>
                 <Input type="text" name="Msminus" id="Msminus" value={this.state.Msminus} onChange={this.handleChange} />
+                <Label for="Sminus">Количество обслуживающих устройств -:</Label>
+                <Input type="text" name="Sminus" id="Sminus" value={this.state.Sminus} onChange={this.handleChange} />
+                <Label for="Iminus">Ёмкость накопителя -:</Label>
+                <Input type="text" name="Iminus" id="Iminus" value={this.state.Iminus} onChange={this.handleChange} />
               </Row>
               <Input type="submit" value="Submit" />
             </Form>
@@ -1225,6 +1342,7 @@ class SMO extends Component {
           <Button onClick={this.checkRegress}>Проверить коэффициенты регрессии</Button>
           <p>Задайте приращения для начальных + и - значений выше</p>
           <CheckRegress data={this.state.checkRegressData}/>
+          <Button onClick={this.findOptimal}>Найти минимальное значение ф-ии и оптимальные значения системы</Button>
         </Row>
       </Col>
     </Container>
