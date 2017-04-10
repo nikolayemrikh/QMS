@@ -483,7 +483,7 @@ class Effects extends Component {
           let colMean = colMeans[k];
           sum += (colMean * P);
         }
-        sum = sum / Math.pow(2, inlfactors.length - 1);
+        sum = sum / Math.pow(2, factors.length - 1);
         es.push(sum);
       }
       mains.push(es);
@@ -668,13 +668,16 @@ class CheckRegress extends Component {
     super(props);
     this.state = {
       mains: [],
-      variants: []
+      variants: [],
+      regressResults: null
     }
   }
   componentWillReceiveProps(props) {
     if (!props.data || !props.data.length) return;
     this.setState({mains: []});
     let regressResults = props.data[0];
+    if (regressResults === this.state.regressResults) return;
+    this.setState({regressResults: regressResults});
     let factors = props.data[1];
     let initlialPlus = props.data[2];
     let initlialMinus = props.data[3];
@@ -691,7 +694,6 @@ class CheckRegress extends Component {
     });
 
     let variants = regressVariants;
-console.log(regressResults, variants)
     let result = [];
     // Для каждого столбца
     for (let i = 0, l = regressResults.length; i < l; ++i) {
@@ -730,7 +732,24 @@ console.log(regressResults, variants)
         return row[i]
       })
     });
+
+    let En = 0.15;
+    let c1 = 6000000;
+    let c2 = 10000;
+    let c3 = 10000;
+    let c4 = 0.05;
+    let c5 = 0.086;
+    let T = 25000000;
+    // Для каждой строки с откликами посчитаем экон оценку
+    for (let i = 0, l = resultInTable.length; i < l; ++i) {
+      let vals = resultInTable[i];
+      let I = En * c1 * main.S + c2 * (vals[4] - vals[3]) + c3 * (main.S - vals[4] + vals[3]) +
+          c4 * T * (main.Ma - vals[5]) + c5 * T * vals[3];
+      console.log(I)
+    }
+
     this.setState({mains: resultInTable});
+
 
   }
   render() {
@@ -870,24 +889,6 @@ let If = React.createClass({
 
 let factorPlanResultConst = [[0.6635170374430872,12.761742140184312,25.71805927824817,0.10629316644791406,0.2756269392428614,0.054065700126100714,1],[0.5975830165435736,8.915610559267062,25.59520700348915,0.06714787367949768,0.21220481036638933,0.04869316437962122,1],[0.7949340951961197,25.427960212831596,29.91765376105333,0.17985587290132626,0.36618914818805465,0.053978353211682595,1],[0.7161979290995797,18.83273628602925,30.272377990985227,0.11773791932375785,0.2762294018004728,0.04863193693670296,1],[0.44312177259804436,1.9345590375977404,26.076597765353885,0.021935075018781836,0.21274314734265418,0.054160679058720504,1],[0.39889427449534015,1.3827072849885027,26.403257425916863,0.013846408948376748,0.17542034998682948,0.04875496108583366,1],[0.5308885064964556,3.8983548781904465,30.702879391920856,0.03806762194811272,0.25176540879319953,0.05407332663084182,1],[0.47840916810121187,2.9731521383668853,31.042859781539228,0.02538732731909594,0.20602230308087852,0.04872807546851431,1],[0.6635170374430872,12.761742140184312,25.71805927824817,0.10629316644791406,0.2756269392428614,0.054065700126100714,1],[0.5975830165435736,8.915610559267062,25.59520700348915,0.06714787367949768,0.21220481036638933,0.04869316437962122,1],[0.7949340951961197,25.427960212831596,29.91765376105333,0.17985587290132626,0.36618914818805465,0.053978353211682595,1],[0.7161979290995797,18.83273628602925,30.272377990985227,0.11773791932375785,0.2762294018004728,0.04863193693670296,1],[0.44312177259804436,1.9345590375977404,26.076597765353885,0.021935075018781836,0.21274314734265418,0.054160679058720504,1],[0.39889427449534015,1.3827072849885027,26.403257425916863,0.013846408948376748,0.17542034998682948,0.04875496108583366,1],[0.5308885064964556,3.8983548781904465,30.702879391920856,0.03806762194811272,0.25176540879319953,0.05407332663084182,1],[0.47840916810121187,2.9731521383668853,31.042859781539228,0.02538732731909594,0.20602230308087852,0.04872807546851431,1]];
 
-function multiply(a, b) {
-  var aNumRows = a.length, aNumCols = a[0].length,
-    bNumRows = b.length, bNumCols = b[0].length,
-    m = new Array(aNumRows);  // initialize array of rows
-  for (var r = 0; r < aNumRows; ++r) {
-    m[r] = new Array(bNumCols); // initialize the current row
-    for (var c = 0; c < bNumCols; ++c) {
-      m[r][c] = 0;             // initialize the current cell
-      for (var i = 0; i < aNumCols; ++i) {
-        m[r][c] += a[r][i] * b[i][c];
-      }
-    }
-  }
-  return m;
-}
-
-
-
 
 class SMO extends Component {
   constructor(props) {
@@ -953,8 +954,8 @@ class SMO extends Component {
     let initialValsMinus = [this.state.Maminus, this.state.Msminus, this.state.Sminus, this.state.Iminus];
     // let baseN = Combinatorics.baseN([true, false], initialValsPlus.length); // Сгенерируем варианты (2^4)
     // baseN = baseN.toArray();
-    // this.setState({regressData: [factorPlanResults, this.state.baseN, initialValsPlus, initialValsMinus]});
-    this.setState({regressData: [factorPlanResultConst, this.state.baseN, initialValsPlus, initialValsMinus]});
+    this.setState({regressData: [factorPlanResults, this.state.baseN, initialValsPlus, initialValsMinus]});
+    // this.setState({regressData: [factorPlanResultConst, this.state.baseN, initialValsPlus, initialValsMinus]});
   }
   checkRegress(e) {
     e.preventDefault();
