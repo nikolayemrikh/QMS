@@ -922,16 +922,22 @@ function optimal(regressResult, baseN, initialPlus, initialMinus) {
   d4max = Math.max(parseInt(initialMinus[3]), parseInt(initialPlus[3]));
 
 
-  let optI = false;
   let optRes = [0, 200000, 200000, 200000, 200000, 0, 0.5, 99999999999];
+
+console.log(d1min, d2min, d3min, d4min)
+
+  let optParams = null;
 
   for (let d1i = d1min, d1delta = 0.1; d1i < d1max; d1i += d1delta) {
     for (let d2i = d2min, d2delta = 0.1; d2i < d2max; d2i += d2delta) {
-      for (let d3i = d3min, d3delta = 0.1; d3i < d3max; d3i += d3delta) {
-        for (let d4i = d4min, d4delta = 0.1; d4i < d4max; d4i += d4delta) {
+      for (let d3i = d3min, d3delta = 1; d3i < d3max; d3i += d3delta) {
+        for (let d4i = d4min, d4delta = 1; d4i < d4max; d4i += d4delta) {
           let initialPlusPart = [d1i + d1delta, d2i + d2delta, d3i + d3delta, d4i + d4delta];
           let initialMinusPart = [d1i, d2i, d3i, d4i];
           let result = [];
+
+
+          let columnParams = [];
           // Для каждого столбца
           for (let i = 0, l = regressResult.length; i < l; ++i) {
             // for (let i = 0, l = 1; i < l; ++i) {
@@ -941,6 +947,17 @@ function optimal(regressResult, baseN, initialPlus, initialMinus) {
             for (let j = 0, n = columnCoefs.length; j < n; ++j) {
               let sum = 0;
               let factorPlusOrMinus = baseN[j];
+              if (i == 0) {
+                let params = [];
+                for (let kek in factorPlusOrMinus) {
+                  if (factorPlusOrMinus[kek] === true) {
+                    params.push(initialPlusPart[kek]);
+                  } else {
+                    params.push(initialMinusPart[kek]);
+                  }
+                }
+                columnParams.push(params);
+              }
               // console.log(factorPlusOrMinus)
               // Для каждой комбинации    пусто 1 2 3 1,3 1,2 3,2 1,2,3 1,2,4 ...
               for (let k = 0; k < variants.length; ++k) {
@@ -975,6 +992,7 @@ function optimal(regressResult, baseN, initialPlus, initialMinus) {
             let I = En * c1 * main.S + c2 * (vals[4] - vals[3]) + c3 * (main.S - vals[4] + vals[3]) +
               c4 * T * (Math.pow(main.Ma, -1) - vals[5]) + c5 * T * vals[3];
             resultInTable[i].push(I);
+            resultInTable[i].push(columnParams[i]);
             // if (optI === false || I < optI) {
             //   optRes = resultInTable[i];
             // }
@@ -983,13 +1001,14 @@ function optimal(regressResult, baseN, initialPlus, initialMinus) {
           // allResults.push(...resultInTable);
           // Найдем самый оптимальный вариант в текущей выборке
           let found = resultInTable.find(el => {
-            if (el[0] >= optRes[0] && el[0] <= 0.7 && // Коэфф использования больше 0.6 и <= 0.7
+            if (el[0] > 0.6 && el[0] >= optRes[0] && el[0] <= 0.7 && // Коэфф использования больше 0.6 и <= 0.7
               el[6] > 0.9 && el[6] <= 1 && // Пропускная способность больше 0.9 и не превышает 1
               el[1] <= optRes[1] && el[1] > 0 && //среднее время ожидания заявки в очереди меньше, чем у оптимального предыдущего
               el[7] <= optRes[7]) {
                 return el;
               }
           });
+          columnParams = null;
           if (found) optRes = found;
 
           // optimals.push(...resultInTable);
