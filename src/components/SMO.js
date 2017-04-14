@@ -924,6 +924,7 @@ function optimal(regressResult, baseN, initialPlus, initialMinus) {
 
   let optRes = [0, 200000, 200000, 200000, 200000, 0, 0.5, 99999999999];
 
+  let minIRes = [0, 200000, 200000, 200000, 200000, 0, 0.5, 99999999999];
 console.log(d1min, d2min, d3min, d4min)
 
   let optParams = null;
@@ -998,6 +999,11 @@ console.log(d1min, d2min, d3min, d4min)
             // }
           }
 
+          for (let i in resultInTable) {
+            let res = resultInTable[i];
+            if (res[7] <= optRes[7]) minIRes = res;
+          }
+
           // allResults.push(...resultInTable);
           // Найдем самый оптимальный вариант в текущей выборке
           let found = resultInTable.find(el => {
@@ -1016,7 +1022,8 @@ console.log(d1min, d2min, d3min, d4min)
       }
     }
   }
-  console.log(optRes)
+  console.log("Минимальное значение ф-ии", minIRes);
+  console.log("Рекомендуемое", optRes);
 }
 
 class SMO extends Component {
@@ -1090,8 +1097,8 @@ class SMO extends Component {
     let initialValsMinus = [this.state.Maminus, this.state.Msminus, this.state.Sminus, this.state.Iminus];
     // let baseN = Combinatorics.baseN([true, false], initialValsPlus.length); // Сгенерируем варианты (2^4)
     // baseN = baseN.toArray();
-    // this.setState({regressData: [factorPlanResults, this.state.baseN, initialValsPlus, initialValsMinus]});
-    this.setState({regressData: [factorPlanResultConst, this.state.baseN, initialValsPlus, initialValsMinus]});
+    this.setState({regressData: [factorPlanResults, this.state.baseN, initialValsPlus, initialValsMinus]});
+    // this.setState({regressData: [factorPlanResultConst, this.state.baseN, initialValsPlus, initialValsMinus]});
   }
   checkRegress(e) {
     e.preventDefault();
